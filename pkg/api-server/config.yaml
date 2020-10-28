@@ -1,0 +1,8 @@
+database:
+  name: taskexecutor
+  user: dev
+  password: dev
+  host: localhost
+
+server:
+  port: 8080

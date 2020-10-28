@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	log "github.com/sirupsen/logrus"
 	"github.com/task-executor/pkg/api"
+	"github.com/task-executor/pkg/utils"
 	"io/ioutil"
 	"net/http"
 )
@@ -33,21 +34,14 @@ func handleTask(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	formatter := &log.TextFormatter{
-		FullTimestamp: true,
-	}
-	log.SetFormatter(formatter)
-	log.WithFields(log.Fields{
-		"animal": "walrus",
-		"size":   10,
-	}).Info("A group of walrus emerges from the ocean")
-	log.SetLevel(log.DebugLevel)
-	log.Debugf("fksdjfsd")
+	utils.InitLogs(log.DebugLevel)
 
 	log.Println("Starting Worker")
 	mux := http.NewServeMux()
-
 	mux.HandleFunc("/api/tasks/", handleTask)
 
-	http.ListenAndServe(":8081", mux)
+	err := http.ListenAndServe(":8081", mux)
+	if err != nil {
+		log.Error(err)
+	}
 }

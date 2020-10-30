@@ -15,8 +15,8 @@ CREATE TABLE build (
 	status int4 NOT NULL,
 	start_ts timestamp NULL,
 	finished_ts timestamp NULL,
-	created_ts timestamp NOT NULL,
-	updated_ts timestamp NOT NULL,
+	created_ts timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	updated_ts timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	CONSTRAINT build_pk PRIMARY KEY (id),
 	CONSTRAINT build_fk FOREIGN KEY (status) REFERENCES build_status(id)
 );

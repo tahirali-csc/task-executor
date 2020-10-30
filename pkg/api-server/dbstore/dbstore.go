@@ -7,14 +7,25 @@ import (
 	"github.com/task-executor/pkg/api-server/config"
 )
 
-func GetDb() (*sql.DB, error) {
-	//TODO : Will review
-	config := config.Get()
+var DataSource *sql.DB
+
+func Init(config *config.AppConfig) error {
 	connString := fmt.Sprintf("dbname=%s user=%s password=%s host=%s sslmode=disable",
 		config.Database.Name, config.Database.User, config.Database.Password, config.Database.Host)
-	return sql.Open("postgres", connString)
+	db, err := sql.Open("postgres", connString)
+	if err != nil {
+		return err
+	}
+
+	err = db.Ping()
+	if err != nil {
+		return err
+	}
+
+	DataSource = db
+	return err
 }
 
-func Release(db *sql.DB) error {
-	return db.Close()
+func Close() error {
+	return DataSource.Close()
 }

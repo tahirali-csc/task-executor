@@ -25,8 +25,8 @@ type Build struct {
 	Id         int64
 	Project    Project
 	Status     BuildStatus
-	StartTs    time.Time
-	FinishedTs time.Time
+	StartTs    *time.Time
+	FinishedTs *time.Time
 	CreatedTs  time.Time
 	UpdatedTs  time.Time
 }

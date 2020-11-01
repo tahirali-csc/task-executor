@@ -16,7 +16,7 @@ import (
 //}
 
 func Run() {
-	// 1. git clone
+	// 1. scm clone
 	//
 
 	//

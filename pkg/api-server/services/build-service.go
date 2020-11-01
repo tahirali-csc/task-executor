@@ -54,6 +54,7 @@ func (bs BuildService) Filter(values map[string][]string) ([]api.Build, error) {
 	return builds, nil
 }
 
+//TODO: Set only on bootstrapping
 func (bs BuildService) getFieldMapping() map[string]querybuilder.Column {
 	fieldMap := make(map[string]querybuilder.Column)
 	fieldMap["id"] = querybuilder.NewColumn("id", querybuilder.NumberType)

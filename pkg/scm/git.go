@@ -1,6 +1,7 @@
 package scm
 
 import (
+	log "github.com/sirupsen/logrus"
 	"os"
 
 	"github.com/go-git/go-git/v5"
@@ -78,6 +79,7 @@ func newBasicAuth(basicAuth *BasicAuth) transport.AuthMethod {
 }
 
 func newSSHAuth(sshAuth *SSHAuth) (transport.AuthMethod, error) {
+	log.Println("Using SSH Authentication", sshAuth.PrivateKey)
 	publicKeys, err := ssh.NewPublicKeys("git", []byte(sshAuth.PrivateKey), "")
 	if err != nil {
 		return nil, err

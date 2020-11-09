@@ -4,19 +4,21 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/task-executor/pkg/api"
 	"github.com/task-executor/pkg/api-server/config"
 	"github.com/task-executor/pkg/api-server/controllers"
 	"github.com/task-executor/pkg/api-server/dbstore"
 	"github.com/task-executor/pkg/pipeline"
+	"github.com/task-executor/pkg/scm/driver/github"
 	steprunner "github.com/task-executor/pkg/step-runner"
 	"github.com/task-executor/pkg/utils"
-	"io/ioutil"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 
 	"net/http"
 )
@@ -84,6 +86,7 @@ func registerShutdown(server *http.Server) {
 	}()
 }
 
+
 func main() {
 	utils.InitLogs(log.DebugLevel)
 
@@ -102,9 +105,20 @@ func main() {
 	mux := http.NewServeMux()
 
 	//TODO::
+	scmClient, _ := github.New()
 	mux.HandleFunc("/api/pipeline/", handlePipeline)
 	mux.HandleFunc("/api/builds", controllers.HandleBuild)
 	mux.HandleFunc("/api/tasks/", handleTask)
+	mux.HandleFunc("/api/callback", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			hook, err := scmClient.Webhooks.Parse(r, w)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			log.Println(hook)
+		}
+	})
 
 	server := http.Server{
 		Addr:    fmt.Sprintf(":%s", config.Server.Port),

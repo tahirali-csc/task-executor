@@ -12,8 +12,10 @@ require (
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/go-git/go-git/v5 v5.2.0
 	github.com/gogo/protobuf v1.3.1 // indirect
+	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/googleapis/gnostic v0.5.3 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
+	github.com/guregu/null v4.0.0+incompatible
 	github.com/konsorten/go-windows-terminal-sequences v1.0.3 // indirect
 	github.com/lib/pq v1.8.0
 	github.com/mdempsky/maligned v0.0.0-20201101000000-d73c43cb16d0 // indirect

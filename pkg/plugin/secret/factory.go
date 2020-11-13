@@ -1,6 +1,7 @@
 package secret
 
 type Secret struct {
+	Name     string
 	Metadata map[string]interface{}
 	Data     interface{}
 }

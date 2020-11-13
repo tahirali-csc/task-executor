@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	staticdata "github.com/task-executor/pkg/api-server/static-data"
 	"io/ioutil"
 	"os"
 	"os/signal"
@@ -101,6 +102,8 @@ func main() {
 		log.Error(err)
 		return
 	}
+
+	staticdata.Init()
 
 	mux := http.NewServeMux()
 

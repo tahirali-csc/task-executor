@@ -7,8 +7,7 @@ import (
 	"github.com/task-executor/pkg/api-server/querybuilder"
 )
 
-type BuildService struct {
-}
+type BuildService struct {}
 
 func NewBuildService() BuildService {
 	return BuildService{}
@@ -16,12 +15,12 @@ func NewBuildService() BuildService {
 
 func (bs BuildService) Create(build *api.Build) (*api.Build, error) {
 
-	insertSql := `INSERT INTO build (project_id,status) VALUES($1,$2) 
-		RETURNING id, project_id, status, created_ts, updated_ts`
-	row := dbstore.DataSource.QueryRow(insertSql, build.Project.Id, build.Status.Id)
+	insertSql := `INSERT INTO build (repo_branch,status) VALUES($1,$2) 
+		RETURNING id, repo_branch, status, created_ts, updated_ts`
+	row := dbstore.DataSource.QueryRow(insertSql, build.RepoBranch.Id, build.Status.Id)
 
 	res := &api.Build{}
-	err := row.Scan(&res.Id, &res.Project.Id, &res.Status.Id, &res.CreatedTs, &res.UpdatedTs)
+	err := row.Scan(&res.Id, &res.RepoBranch.Id, &res.Status.Id, &res.CreatedTs, &res.UpdatedTs)
 
 	return res, err
 }
@@ -42,7 +41,7 @@ func (bs BuildService) Filter(values map[string][]string) ([]api.Build, error) {
 	var builds []api.Build
 	for rows.Next() {
 		res := api.Build{}
-		err := rows.Scan(&res.Id, &res.Project.Id, &res.Status.Id, &res.StartTs, &res.FinishedTs, &res.CreatedTs, &res.UpdatedTs)
+		//err := rows.Scan(&res.Id, &res.Project.Id, &res.Status.Id, &res.StartTs, &res.FinishedTs, &res.CreatedTs, &res.UpdatedTs)
 
 		if err != nil {
 			return nil, err

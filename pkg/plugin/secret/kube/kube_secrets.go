@@ -41,6 +41,7 @@ func (k8 KubernetesSecret) getValueFromSecret(k8Secret *v1.Secret) (*secret.Secr
 	sec := secret.Secret{
 		Metadata: make(map[string]interface{}),
 	}
+	sec.Name = k8Secret.Name
 	sec.Metadata["type"] = string(k8Secret.Type)
 
 	data := map[string]interface{}{}

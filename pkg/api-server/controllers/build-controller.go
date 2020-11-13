@@ -2,12 +2,12 @@ package controllers
 
 import (
 	"encoding/json"
-	"github.com/task-executor/pkg/api-server/services"
-	"io/ioutil"
-	"net/http"
-
 	log "github.com/sirupsen/logrus"
 	"github.com/task-executor/pkg/api"
+	"github.com/task-executor/pkg/api-server/services"
+	"github.com/task-executor/pkg/api-server/trigger"
+	"io/ioutil"
+	"net/http"
 )
 
 var buildService = services.NewBuildService()
@@ -52,6 +52,24 @@ func createBuild(r *http.Request, w http.ResponseWriter) {
 		return
 	}
 
+	namespace := r.URL.Query()["namespace"][0]
+	repoName := r.URL.Query()["repoName"][0]
+	//TODO::
+	//branch := r.URL.Query()["branch"]
+
+	repoService := services.RepoService{}
+	repo, err := repoService.FindByNamespaceAndName(namespace, repoName)
+	if err != nil {
+		log.Error(err)
+		http.Error(w, "Unable to find repo", 500)
+		return
+	}
+	log.Println(repo)
+
+	//TODO: Find who triggered the build??
+
+	//TODO: Branch??
+
 	build := &api.Build{}
 	err = json.Unmarshal(data, build)
 	if err != nil {
@@ -60,25 +78,27 @@ func createBuild(r *http.Request, w http.ResponseWriter) {
 		return
 	}
 
-	res, err := buildService.Create(build)
-	if err != nil {
-		log.Error(err)
-		http.Error(w, "Unable to save", 500)
-		return
-	}
+	buildTrigger, err := trigger.NewBuildTrigger()
+	buildTrigger.Trigger(repo)
 
-	data, err = json.Marshal(res)
-	if err != nil {
-		log.Error(err)
-		http.Error(w, "Unable to convert", 500)
-		return
-	}
-
-	_, err = w.Write(data)
-	if err != nil {
-		log.Error(err)
-		http.Error(w, "Unable to convert", 500)
-		return
-	}
-
+	//res, err := buildService.Create(build)
+	//if err != nil {
+	//	log.Error(err)
+	//	http.Error(w, "Unable to save", 500)
+	//	return
+	//}
+	//
+	//data, err = json.Marshal(res)
+	//if err != nil {
+	//	log.Error(err)
+	//	http.Error(w, "Unable to convert", 500)
+	//	return
+	//}
+	//
+	//_, err = w.Write(data)
+	//if err != nil {
+	//	log.Error(err)
+	//	http.Error(w, "Unable to convert", 500)
+	//	return
+	//}
 }

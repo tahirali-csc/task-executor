@@ -58,6 +58,7 @@ CREATE TABLE build(
 CREATE TABLE step(
     id int8 NOT NULL GENERATED ALWAYS AS IDENTITY,
     build_id int8 NOT NULL,
+    name VARCHAR(100) NOT NULL,
     status int4 NOT NULL,
     start_ts timestamp NULL,
 	finished_ts timestamp NULL,

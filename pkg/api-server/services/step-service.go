@@ -13,9 +13,9 @@ func NewStepService() StepService {
 
 func (bs StepService) Create(step *api.Step) (*api.Step, error) {
 
-	insertSql := `INSERT INTO step (build_id,status) VALUES($1,$2) 
+	insertSql := `INSERT INTO step (build_id,name,status) VALUES($1,$2,$3) 
 		RETURNING id, build_id, status, created_ts, updated_ts`
-	row := dbstore.DataSource.QueryRow(insertSql, step.Build.Id, step.Status.Id)
+	row := dbstore.DataSource.QueryRow(insertSql, step.Build.Id, step.Name, step.Status.Id)
 
 	res := &api.Step{}
 	err := row.Scan(&res.Id, &res.Build.Id, &res.Status.Id, &res.CreatedTs, &res.UpdatedTs)

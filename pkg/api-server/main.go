@@ -2,23 +2,19 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	staticdata "github.com/task-executor/pkg/api-server/static-data"
-	"io/ioutil"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/task-executor/pkg/api"
 	"github.com/task-executor/pkg/api-server/config"
 	"github.com/task-executor/pkg/api-server/controllers"
 	"github.com/task-executor/pkg/api-server/dbstore"
 	"github.com/task-executor/pkg/pipeline"
 	"github.com/task-executor/pkg/scm/driver/github"
-	steprunner "github.com/task-executor/pkg/step-runner"
 	"github.com/task-executor/pkg/utils"
 
 	"net/http"
@@ -43,26 +39,26 @@ func handlePipeline(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func handleTask(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodPost {
-		body, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			http.Error(w, "Unable to parse body", 500)
-			return
-		}
-
-		runConfig := &api.RunConfig{}
-		err = json.Unmarshal(body, runConfig)
-		if err != nil {
-			http.Error(w, "Unable to parse body", 500)
-			return
-		}
-
-		log.Println("The request object:::", runConfig)
-
-		steprunner.Run(runConfig)
-	}
-}
+//func handleTask(w http.ResponseWriter, r *http.Request) {
+//	if r.Method == http.MethodPost {
+//		body, err := ioutil.ReadAll(r.Body)
+//		if err != nil {
+//			http.Error(w, "Unable to parse body", 500)
+//			return
+//		}
+//
+//		runConfig := &api.RunConfig{}
+//		err = json.Unmarshal(body, runConfig)
+//		if err != nil {
+//			http.Error(w, "Unable to parse body", 500)
+//			return
+//		}
+//
+//		log.Println("The request object:::", runConfig)
+//
+//		steprunner.Run(runConfig)
+//	}
+//}
 
 func registerShutdown(server *http.Server) {
 	c := make(chan os.Signal, 1)
@@ -111,7 +107,7 @@ func main() {
 	scmClient, _ := github.New()
 	mux.HandleFunc("/api/pipeline/", handlePipeline)
 	mux.HandleFunc("/api/builds", controllers.HandleBuild)
-	mux.HandleFunc("/api/tasks", controllers.HandleStep)
+	mux.HandleFunc("/api/steps", controllers.HandleStep)
 	mux.HandleFunc("/api/callback", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			hook, err := scmClient.Webhooks.Parse(r, w)

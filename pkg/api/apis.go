@@ -2,12 +2,12 @@ package api
 
 import "time"
 
-type RunConfig struct {
-	Image   string
-	Command []string
-	//TODO: Will review. Object/Property
-	BuildId int64
-}
+//type struct {
+//Image   string
+//Command []string
+////TODO: Will review. Object/Property
+//BuildId int64
+//}
 
 const PendingBuildStatus = "Pending"
 const StartedBuildStatus = "Started"
@@ -64,6 +64,7 @@ type RepoBranch struct {
 
 type Step struct {
 	Id         int64
+	Name       string
 	Build      Build
 	Status     BuildStatus
 	StartTs    *time.Time

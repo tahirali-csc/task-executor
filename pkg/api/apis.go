@@ -2,9 +2,6 @@ package api
 
 import "time"
 
-type PipelineConfig struct {
-}
-
 type RunConfig struct {
 	Image   string
 	Command []string
@@ -40,6 +37,7 @@ type AuthType struct {
 }
 
 const KubernetesSecretType = "Kubernetes"
+
 type SecretType struct {
 	Id   int
 	Name string
@@ -62,4 +60,14 @@ type RepoBranch struct {
 	Id   int64
 	Repo Repo
 	Name string
+}
+
+type Step struct {
+	Id         int64
+	Build      Build
+	Status     BuildStatus
+	StartTs    *time.Time
+	FinishedTs *time.Time
+	CreatedTs  time.Time
+	UpdatedTs  time.Time
 }

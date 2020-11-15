@@ -111,7 +111,7 @@ func main() {
 	scmClient, _ := github.New()
 	mux.HandleFunc("/api/pipeline/", handlePipeline)
 	mux.HandleFunc("/api/builds", controllers.HandleBuild)
-	mux.HandleFunc("/api/tasks/", handleTask)
+	mux.HandleFunc("/api/tasks", controllers.HandleStep)
 	mux.HandleFunc("/api/callback", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			hook, err := scmClient.Webhooks.Parse(r, w)

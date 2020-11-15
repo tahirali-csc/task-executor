@@ -52,5 +52,18 @@ CREATE TABLE build(
 	created_ts timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	updated_ts timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	CONSTRAINT build_pk PRIMARY KEY (id),
-	CONSTRAINT build_fk FOREIGN KEY (status) REFERENCES build_status(id)
+	CONSTRAINT build_status_fk FOREIGN KEY (status) REFERENCES build_status(id)
+);
+
+CREATE TABLE step(
+    id int8 NOT NULL GENERATED ALWAYS AS IDENTITY,
+    build_id int8 NOT NULL,
+    status int4 NOT NULL,
+    start_ts timestamp NULL,
+	finished_ts timestamp NULL,
+    created_ts timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	updated_ts timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	CONSTRAINT step_pk PRIMARY KEY (id),
+	CONSTRAINT step_build_fk FOREIGN KEY (build_id) REFERENCES build(id),
+	CONSTRAINT step_status_fk FOREIGN KEY (status) REFERENCES build_status(id)
 );

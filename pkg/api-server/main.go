@@ -13,52 +13,12 @@ import (
 	"github.com/task-executor/pkg/api-server/config"
 	"github.com/task-executor/pkg/api-server/controllers"
 	"github.com/task-executor/pkg/api-server/dbstore"
-	"github.com/task-executor/pkg/pipeline"
 	"github.com/task-executor/pkg/scm/driver/github"
 	"github.com/task-executor/pkg/utils"
 
 	"net/http"
 )
 
-func handlePipeline(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodPost {
-		//body, err := ioutil.ReadAll(r.Body)
-		//if err != nil {
-		//	http.Error(w, "Unable to parse body", 500)
-		//	return
-		//}
-		//
-		//runConfig := &api.RunConfig{}
-		//err = json.Unmarshal(body, runConfig)
-		//if err != nil {
-		//	http.Error(w, "Unable to parse body", 500)
-		//	return
-		//}
-
-		pipeline.Run()
-	}
-}
-
-//func handleTask(w http.ResponseWriter, r *http.Request) {
-//	if r.Method == http.MethodPost {
-//		body, err := ioutil.ReadAll(r.Body)
-//		if err != nil {
-//			http.Error(w, "Unable to parse body", 500)
-//			return
-//		}
-//
-//		runConfig := &api.RunConfig{}
-//		err = json.Unmarshal(body, runConfig)
-//		if err != nil {
-//			http.Error(w, "Unable to parse body", 500)
-//			return
-//		}
-//
-//		log.Println("The request object:::", runConfig)
-//
-//		steprunner.Run(runConfig)
-//	}
-//}
 
 func registerShutdown(server *http.Server) {
 	c := make(chan os.Signal, 1)
@@ -105,7 +65,6 @@ func main() {
 
 	//TODO::
 	scmClient, _ := github.New()
-	mux.HandleFunc("/api/pipeline/", handlePipeline)
 	mux.HandleFunc("/api/builds", controllers.HandleBuild)
 	mux.HandleFunc("/api/steps", controllers.HandleStep)
 	mux.HandleFunc("/api/callback", func(w http.ResponseWriter, r *http.Request) {

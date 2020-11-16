@@ -1,11 +1,15 @@
 package controllers
 
 import (
+	"context"
 	"encoding/json"
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"github.com/task-executor/pkg/api"
 	"github.com/task-executor/pkg/api-server/services"
 	staticdata "github.com/task-executor/pkg/api-server/static-data"
+	engine2 "github.com/task-executor/pkg/engine"
+	"github.com/task-executor/pkg/engine/kube"
 	"io/ioutil"
 	"net/http"
 )
@@ -25,6 +29,7 @@ type stepExec struct {
 	Name     string
 	Image    string
 	Cmd      []string
+	Args     []string
 	CpuLimit int
 	Memory   int
 	BuildId  int64
@@ -61,6 +66,29 @@ func createStep(r *http.Request, w http.ResponseWriter) {
 	if err != nil {
 		log.Error(err)
 		http.Error(w, "Unable to parse data", 500)
+		return
+	}
+
+	uud, err := uuid.NewUUID()
+	newId := uud.String()
+
+	engine, err := kube.NewFile("", "/Users/tahir/.kube/config", "")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	err = engine.Start(context.Background(), &engine2.Spec{
+		Image:   step.Image,
+		Command: step.Cmd,
+		Args:    step.Args,
+		Metadata: engine2.Metadata{
+			Namespace: "default",
+			UID:       newId,
+		},
+	})
+	if err != nil {
+		log.Println(err)
 		return
 	}
 

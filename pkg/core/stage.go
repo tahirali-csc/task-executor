@@ -1,15 +1,7 @@
 package core
 
-//type Container struct {
-//	Image           string
-//	ImagePullPolicy string
-//	Command         []string
-//	Args            []string
-//}
-
 type Stage struct {
-	//ID        int64             `json:"id"`
-	//BuildID   int64             `json:"build_id"`build_id
+	Name            string
 	Image           string
 	ImagePullPolicy string
 	LimitMemory     int
@@ -18,8 +10,8 @@ type Stage struct {
 	RequestCompute  int
 	Command         []string
 	Args            []string
-	//InitContainers  []string
-	Volume []InitVolume
+	Volume          []InitVolume
+	BuildId         int64
 }
 
 type InitContainer struct {

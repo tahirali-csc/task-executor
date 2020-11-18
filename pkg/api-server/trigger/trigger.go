@@ -2,6 +2,7 @@ package trigger
 
 import (
 	"context"
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"github.com/task-executor/pkg/api"
 	"github.com/task-executor/pkg/api-server/services"
@@ -33,9 +34,11 @@ func NewBuildTrigger() (*BuildTrigger, error) {
 }
 
 func (trigger *BuildTrigger) Trigger(repo *api.Repo) error {
+	//Start in Pending State
 	pendingStatus := staticdata.BuildStatusList[api.PendingBuildStatus]
 
 	pendingBuild := api.Build{
+		//TODO::
 		RepoBranch: api.RepoBranch{
 			Id:   22,
 			Repo: *repo,
@@ -44,11 +47,12 @@ func (trigger *BuildTrigger) Trigger(repo *api.Repo) error {
 		Status: pendingStatus,
 	}
 
-	_, err := trigger.BuildService.Create(&pendingBuild)
+	res, err := trigger.BuildService.Create(&pendingBuild)
 	if err != nil {
 		return err
 	}
 
+	// Fetch Secret
 	secret, err := injectSecret(repo)
 	if err != nil {
 		return err
@@ -81,7 +85,6 @@ func (trigger *BuildTrigger) Trigger(repo *api.Repo) error {
 			{
 				Name: "USER",
 				From: core.SecretFromRef{
-					//Name: "secret-basic-auth",
 					Name: secretObj.Name,
 					Key:  "username",
 				},
@@ -89,7 +92,6 @@ func (trigger *BuildTrigger) Trigger(repo *api.Repo) error {
 			{
 				Name: "PASSWORD",
 				From: core.SecretFromRef{
-					//Name: "secret-basic-auth",
 					Name: secretObj.Name,
 					Key:  "password",
 				},
@@ -103,20 +105,24 @@ func (trigger *BuildTrigger) Trigger(repo *api.Repo) error {
 		},
 	}
 
+	id := uuid.New()
+
 	trigger.Scheduler.Schedule(context.Background(), &core.Stage{
+		Name:            id.String(),
 		Image:           "golang:1.14",
 		ImagePullPolicy: "Never",
 		LimitMemory:     0,
 		LimitCompute:    0,
 		RequestMemory:   0,
 		RequestCompute:  0,
-		Command:         []string{"/bin/sh", "-c", "ls -al /data && cd /data/ci && go run ci.go"},
+		Command:         []string{"/bin/sh", "-c", "cd /data/ci && go get && go run ci.go"},
 		Volume: []core.InitVolume{
 			{
 				Name:      "www-data",
 				MountPath: "/data",
 			},
 		},
+		BuildId: res.Id,
 	}, []core.InitContainer{scmCloneContainer})
 
 	return nil
@@ -236,8 +242,8 @@ func injectSecret(repo *api.Repo) (secret.Secrets, error) {
 			return nil, err
 		}
 
-		secret := secretsFactory.NewSecrets()
-		return secret, nil
+		kubeSecret := secretsFactory.NewSecrets()
+		return kubeSecret, nil
 	}
 	return nil, nil
 }

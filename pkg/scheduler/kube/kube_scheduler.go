@@ -2,6 +2,7 @@ package kube
 
 import (
 	"context"
+	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/task-executor/pkg/core"
 	"github.com/task-executor/pkg/scheduler"
@@ -19,9 +20,20 @@ type KubeScheduler struct {
 }
 
 func (k KubeScheduler) Schedule(ctx context.Context, stage *core.Stage, initContainers []core.InitContainer) error {
+	//host.minikube.internal
+	//var env []string
+	//env = append(env, "TE_HOST_URL=http://host.minikube.internal:8080")
+	//env = append(env, "TE_BUILD_ID=17")
+
+	env := make(map[string]string)
+	env["TE_HOST_URL"] = "http://192.168.64.1:8080"
+	//env["TE_BUILD_ID"] = "17"
+	env["TE_BUILD_ID"] = fmt.Sprintf("%d", stage.BuildId)
+
 	job := &v1.Job{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "wwwwww",
+			Name:      stage.Name,
+			Namespace: k.namespace(),
 		},
 		Spec: batchv1.JobSpec{
 			Template: corev1.PodTemplateSpec{
@@ -42,6 +54,7 @@ func (k KubeScheduler) Schedule(ctx context.Context, stage *core.Stage, initCont
 									MountPath: "/data",
 								},
 							},
+							Env: toEnvironment(env),
 						},
 					},
 					Volumes: k.newMountVolumes(stage.Volume),
@@ -122,4 +135,26 @@ func (k KubeScheduler) newMountVolumes(volume []core.InitVolume) []corev1.Volume
 		})
 	}
 	return vols
+}
+
+func (k *KubeScheduler) namespace() string {
+	namespace := k.config.Namespace
+	if namespace == "" {
+		namespace = metav1.NamespaceDefault
+	}
+	return namespace
+}
+
+func toEnvironment(from map[string]string) []corev1.EnvVar {
+	var to []corev1.EnvVar
+	for k, v := range from {
+		if v == "" {
+			continue
+		}
+		to = append(to, corev1.EnvVar{
+			Name:  k,
+			Value: v,
+		})
+	}
+	return to
 }

@@ -20,14 +20,10 @@ type KubeScheduler struct {
 }
 
 func (k KubeScheduler) Schedule(ctx context.Context, stage *core.Stage, initContainers []core.InitContainer) error {
-	//host.minikube.internal
-	//var env []string
-	//env = append(env, "TE_HOST_URL=http://host.minikube.internal:8080")
-	//env = append(env, "TE_BUILD_ID=17")
 
 	env := make(map[string]string)
-	env["TE_HOST_URL"] = "http://192.168.64.1:8080"
-	//env["TE_BUILD_ID"] = "17"
+	//env["TE_HOST_URL"] = "http://192.168.64.1:8080"
+	env["TE_HOST_URL"] = k.config.HostURL
 	env["TE_BUILD_ID"] = fmt.Sprintf("%d", stage.BuildId)
 
 	job := &v1.Job{
@@ -70,6 +66,8 @@ func (k KubeScheduler) Schedule(ctx context.Context, stage *core.Stage, initCont
 	} else {
 		//log.Debugf("kubernetes: successfully created job")
 	}
+
+	log.Print("The job name:::", job.Name)
 
 	return err
 }

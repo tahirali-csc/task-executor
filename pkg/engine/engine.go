@@ -1,6 +1,9 @@
 package engine
 
-import "context"
+import (
+	"context"
+	"io"
+)
 
 // Engine defines a runtime engine for pipeline execution.
 type Engine interface {
@@ -9,4 +12,6 @@ type Engine interface {
 
 	// Start the pipeline step.
 	Start(context.Context, *Spec) error
+
+	Tail(ctx context.Context, spec *Spec) (io.ReadCloser, error)
 }

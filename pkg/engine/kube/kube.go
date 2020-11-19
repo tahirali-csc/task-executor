@@ -6,13 +6,8 @@ import (
 	"io"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
-	"time"
 )
 
 type kubeEngine struct {
@@ -93,41 +88,44 @@ func (e *kubeEngine) Tail(ctx context.Context, spec *engine.Spec) (io.ReadCloser
 	ns := spec.Metadata.Namespace
 	podName := spec.Metadata.UID
 
-	up := make(chan bool)
-
-	var podUpdated = func(old interface{}, new interface{}) {
-		pod := new.(*v1.Pod)
-		if pod.Name == podName {
-			switch pod.Status.Phase {
-			case v1.PodRunning, v1.PodSucceeded, v1.PodFailed:
-				up <- true
-			}
-		}
-	}
-	si := informers.NewSharedInformerFactory(e.client, 5*time.Minute)
-	si.Core().V1().Pods().Informer().AddEventHandler(
-		cache.ResourceEventHandlerFuncs{
-			UpdateFunc: podUpdated,
-		},
-	)
-	si.Start(wait.NeverStop)
-
-	select {
-	case <-up:
-	case <-ctx.Done():
-	}
-
-	opts := &v1.PodLogOptions{
-		Follow: true,
-	}
-
-	return e.client.CoreV1().RESTClient().Get().
-		Namespace(ns).
-		Name(podName).
-		Resource("pods").
-		SubResource("log").
-		VersionedParams(opts, scheme.ParameterCodec).
+	return e.client.CoreV1().Pods(ns).GetLogs(podName, &v1.PodLogOptions{Follow: true}).
 		Stream(ctx)
+
+	//up := make(chan bool)
+	//
+	//var podUpdated = func(old interface{}, new interface{}) {
+	//	pod := new.(*v1.Pod)
+	//	if pod.Name == podName {
+	//		switch pod.Status.Phase {
+	//		case v1.PodRunning, v1.PodSucceeded, v1.PodFailed:
+	//			up <- true
+	//		}
+	//	}
+	//}
+	//si := informers.NewSharedInformerFactory(e.client, 5*time.Minute)
+	//si.Core().V1().Pods().Informer().AddEventHandler(
+	//	cache.ResourceEventHandlerFuncs{
+	//		UpdateFunc: podUpdated,
+	//	},
+	//)
+	//si.Start(wait.NeverStop)
+	//
+	//select {
+	//case <-up:
+	//case <-ctx.Done():
+	//}
+	//
+	//opts := &v1.PodLogOptions{
+	//	Follow: true,
+	//}
+	//
+	//return e.client.CoreV1().RESTClient().Get().
+	//	Namespace(ns).
+	//	Name(podName).
+	//	Resource("pods").
+	//	SubResource("log").
+	//	VersionedParams(opts, scheme.ParameterCodec).
+	//	Stream(ctx)
 }
 
 // helper function returns a kubernetes pod for the

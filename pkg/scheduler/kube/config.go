@@ -5,4 +5,5 @@ type Config struct {
 	ConfigPath     string
 	Namespace      string
 	ServiceAccount string
+	HostURL        string
 }

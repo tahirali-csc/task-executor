@@ -3,7 +3,7 @@ package controllers
 import (
 	"context"
 	"encoding/json"
-	"github.com/google/uuid"
+	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/task-executor/pkg/api"
 	"github.com/task-executor/pkg/api-server/services"
@@ -69,8 +69,8 @@ func createStep(r *http.Request, w http.ResponseWriter) {
 		return
 	}
 
-	uud, err := uuid.NewUUID()
-	newId := uud.String()
+	//uud, err := uuid.NewUUID()
+	//newId := uud.String()
 
 	engine, err := kube.NewFile("", "/Users/tahir/.kube/config", "")
 	if err != nil {
@@ -84,7 +84,8 @@ func createStep(r *http.Request, w http.ResponseWriter) {
 		Args:    step.Args,
 		Metadata: engine2.Metadata{
 			Namespace: "default",
-			UID:       newId,
+			//TODO: Can add more randomization
+			UID:       fmt.Sprintf("te-step-%d", res.Id),
 		},
 	})
 	if err != nil {

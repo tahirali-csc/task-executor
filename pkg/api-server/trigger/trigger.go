@@ -2,8 +2,7 @@ package trigger
 
 import (
 	"context"
-	"github.com/google/uuid"
-	log "github.com/sirupsen/logrus"
+	"fmt"
 	"github.com/task-executor/pkg/api"
 	"github.com/task-executor/pkg/api-server/services"
 	staticdata "github.com/task-executor/pkg/api-server/static-data"
@@ -105,10 +104,10 @@ func (trigger *BuildTrigger) Trigger(repo *api.Repo) error {
 		},
 	}
 
-	id := uuid.New()
+	//id := uuid.New()
 
 	trigger.Scheduler.Schedule(context.Background(), &core.Stage{
-		Name:            id.String(),
+		Name:            fmt.Sprintf("te-build-%d", res.Id),
 		Image:           "golang:1.14",
 		ImagePullPolicy: "Never",
 		LimitMemory:     0,
@@ -128,85 +127,86 @@ func (trigger *BuildTrigger) Trigger(repo *api.Repo) error {
 	return nil
 }
 
-func scheduleBuild() {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	kubeConfig := path.Join(homeDir, ".kube", "config")
+//func scheduleBuild() {
+//	homeDir, err := os.UserHomeDir()
+//	if err != nil {
+//		log.Println(err)
+//		return
+//	}
+//	kubeConfig := path.Join(homeDir, ".kube", "config")
+//
+//	kubeSch, err := kube.NewKubeScheduler(&kube.Config{
+//		ConfigURL:      "",
+//		ConfigPath:     kubeConfig,
+//		Namespace:      "default",
+//		ServiceAccount: "default",
+//		//TODO::
+//	})
+//
+//	km := &kubesecret.KubernetesManager{
+//		ConfigPath: kubeConfig,
+//	}
+//	secretsFactory, _ := km.NewSecretsFactory()
+//	s := secretsFactory.NewSecrets()
+//
+//	var cmd []string
+//	sec, err := s.Get("default/secret-basic-auth")
+//
+//	cmd = append(cmd, "./repo-cloner")
+//	cmd = append(cmd, "--repo=https://github.com/tahirali-csc/hello-app.git")
+//	cmd = append(cmd, "--clone-dir=/data")
+//	if sec.Metadata["type"] == "kubernetes.io/basic-auth" {
+//		cmd = append(cmd, "--secret-type=basic-auth")
+//	} else if sec.Metadata["type"] == "kubernetes.io/ssh-auth" {
+//		cmd = append(cmd, "--secret-type=ssh-auth")
+//	}
+//
+//	scmCloneContainer := core.InitContainer{
+//		Name:            "scm-clone",
+//		Image:           "repo-cloner:latest",
+//		ImagePullPolicy: "Never",
+//		Command:         cmd,
+//		Secrets: []core.SecretSource{
+//			{
+//				Name: "USER",
+//				From: core.SecretFromRef{
+//					Name: "secret-basic-auth",
+//					Key:  "username",
+//				},
+//			},
+//			{
+//				Name: "PASSWORD",
+//				From: core.SecretFromRef{
+//					Name: "secret-basic-auth",
+//					Key:  "password",
+//				},
+//			},
+//		},
+//		Volume: []core.InitVolume{
+//			{
+//				Name:      "www-data",
+//				MountPath: "/data",
+//			},
+//		},
+//	}
+//
+//	kubeSch.Schedule(context.Background(), &core.Stage{
+//		Image:           "golang:1.14",
+//		ImagePullPolicy: "Never",
+//		LimitMemory:     0,
+//		LimitCompute:    0,
+//		RequestMemory:   0,
+//		RequestCompute:  0,
+//		Command:         []string{"/bin/sh", "-c", "ls -al /data && cd /data/ci && go run ci.go"},
+//		Volume: []core.InitVolume{
+//			{
+//				Name:      "www-data",
+//				MountPath: "/data",
+//			},
+//		},
+//	}, []core.InitContainer{scmCloneContainer})
+//}
 
-	kubeSch, err := kube.NewKubeScheduler(&kube.Config{
-		ConfigURL:      "",
-		ConfigPath:     kubeConfig,
-		Namespace:      "default",
-		ServiceAccount: "default",
-		//TODO::
-	})
-
-	km := &kubesecret.KubernetesManager{
-		ConfigPath: kubeConfig,
-	}
-	secretsFactory, _ := km.NewSecretsFactory()
-	s := secretsFactory.NewSecrets()
-
-	var cmd []string
-	sec, err := s.Get("default/secret-basic-auth")
-
-	cmd = append(cmd, "./repo-cloner")
-	cmd = append(cmd, "--repo=https://github.com/tahirali-csc/hello-app.git")
-	cmd = append(cmd, "--clone-dir=/data")
-	if sec.Metadata["type"] == "kubernetes.io/basic-auth" {
-		cmd = append(cmd, "--secret-type=basic-auth")
-	} else if sec.Metadata["type"] == "kubernetes.io/ssh-auth" {
-		cmd = append(cmd, "--secret-type=ssh-auth")
-	}
-
-	scmCloneContainer := core.InitContainer{
-		Name:            "scm-clone",
-		Image:           "repo-cloner:latest",
-		ImagePullPolicy: "Never",
-		Command:         cmd,
-		Secrets: []core.SecretSource{
-			{
-				Name: "USER",
-				From: core.SecretFromRef{
-					Name: "secret-basic-auth",
-					Key:  "username",
-				},
-			},
-			{
-				Name: "PASSWORD",
-				From: core.SecretFromRef{
-					Name: "secret-basic-auth",
-					Key:  "password",
-				},
-			},
-		},
-		Volume: []core.InitVolume{
-			{
-				Name:      "www-data",
-				MountPath: "/data",
-			},
-		},
-	}
-
-	kubeSch.Schedule(context.Background(), &core.Stage{
-		Image:           "golang:1.14",
-		ImagePullPolicy: "Never",
-		LimitMemory:     0,
-		LimitCompute:    0,
-		RequestMemory:   0,
-		RequestCompute:  0,
-		Command:         []string{"/bin/sh", "-c", "ls -al /data && cd /data/ci && go run ci.go"},
-		Volume: []core.InitVolume{
-			{
-				Name:      "www-data",
-				MountPath: "/data",
-			},
-		},
-	}, []core.InitContainer{scmCloneContainer})
-}
 func provideKubernetesScheduler() (scheduler.Scheduler, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -221,6 +221,8 @@ func provideKubernetesScheduler() (scheduler.Scheduler, error) {
 		Namespace:      "default",
 		ServiceAccount: "default",
 		//TODO: Add more properties
+		//TODO: Externalize
+		HostURL: "http://192.168.64.1:8080",
 	})
 
 	return kubeSch, err

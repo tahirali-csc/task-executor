@@ -1,27 +1,55 @@
 package controllers
 
 import (
-	"context"
 	"encoding/json"
-	"fmt"
+	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 	"github.com/task-executor/pkg/api"
 	"github.com/task-executor/pkg/api-server/services"
 	staticdata "github.com/task-executor/pkg/api-server/static-data"
-	engine2 "github.com/task-executor/pkg/engine"
-	"github.com/task-executor/pkg/engine/kube"
+	"github.com/task-executor/pkg/core"
+	runner "github.com/task-executor/pkg/runner"
 	"io/ioutil"
 	"net/http"
+	"strconv"
+	"time"
 )
 
 var stepService = services.NewStepService()
+var stepRunner = runner.NewRunner()
 
 func HandleStep(w http.ResponseWriter, r *http.Request) {
-
 	if r.Method == http.MethodPost {
 		createStep(r, w)
 	} else if r.Method == http.MethodGet {
+		findStep(r, w)
+	}
+}
 
+func HandleStepStatus(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		stepIdVar := mux.Vars(r)["id"]
+		stepId, _ := strconv.ParseInt(stepIdVar, 10, 64)
+		status, err := buildService.GetStatus(stepId)
+		if err != nil {
+			log.Println(err)
+			log.Println("Can not get status")
+			return
+		}
+
+		dat, err := json.Marshal(status)
+		if err != nil {
+			log.Error(err)
+			http.Error(w, "Unable to parse data", 500)
+			return
+		}
+
+		_, err = w.Write(dat)
+		if err != nil {
+			log.Error(err)
+			http.Error(w, "Unable to convert", 500)
+			return
+		}
 	}
 }
 
@@ -54,6 +82,7 @@ func createStep(r *http.Request, w http.ResponseWriter) {
 
 	buildStatus := staticdata.BuildStatusList[api.PendingBuildStatus]
 
+	now := time.Now()
 	res, err := stepService.Create(&api.Step{
 		Build: api.Build{
 			Id: step.BuildId,
@@ -62,6 +91,7 @@ func createStep(r *http.Request, w http.ResponseWriter) {
 		Status: api.BuildStatus{
 			Id: buildStatus.Id,
 		},
+		StartTs: &now,
 	})
 	if err != nil {
 		log.Error(err)
@@ -69,31 +99,29 @@ func createStep(r *http.Request, w http.ResponseWriter) {
 		return
 	}
 
-	//uud, err := uuid.NewUUID()
-	//newId := uud.String()
+	rs := &core.StepRun{
+		Name:     step.Name,
+		BuildId:  step.BuildId,
+		Args:     step.Args,
+		Cmd:      step.Cmd,
+		Image:    step.Image,
+		Memory:   step.Memory,
+		CpuLimit: step.CpuLimit,
+		Step:     res,
+	}
 
-	engine, err := kube.NewFile("", "/Users/tahir/.kube/config", "")
+	go stepRunner.Run(rs)
+}
+
+func findStep(r *http.Request, w http.ResponseWriter) {
+	builds, err := stepService.Filter(r.URL.Query())
 	if err != nil {
-		log.Println(err)
+		log.Error(err)
+		http.Error(w, "Unable to retrieve data", 500)
 		return
 	}
 
-	err = engine.Start(context.Background(), &engine2.Spec{
-		Image:   step.Image,
-		Command: step.Cmd,
-		Args:    step.Args,
-		Metadata: engine2.Metadata{
-			Namespace: "default",
-			//TODO: Can add more randomization
-			UID:       fmt.Sprintf("te-step-%d", res.Id),
-		},
-	})
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	data, err = json.Marshal(res)
+	data, err := json.Marshal(builds)
 	if err != nil {
 		log.Error(err)
 		http.Error(w, "Unable to convert", 500)

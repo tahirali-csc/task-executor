@@ -1,5 +1,18 @@
 package core
 
+import "github.com/task-executor/pkg/api"
+
+type StepRun struct {
+	Step *api.Step
+	Name     string
+	Image    string
+	Cmd      []string
+	Args     []string
+	CpuLimit int
+	Memory   int
+	BuildId  int64
+}
+
 type Stage struct {
 	Name            string
 	Image           string

@@ -8,6 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+	"time"
 )
 
 type kubeEngine struct {
@@ -87,6 +88,16 @@ func (e *kubeEngine) Start(ctx context.Context, spec *engine.Spec) error {
 func (e *kubeEngine) Tail(ctx context.Context, spec *engine.Spec) (io.ReadCloser, error) {
 	ns := spec.Metadata.Namespace
 	podName := spec.Metadata.UID
+
+	pi := e.client.CoreV1().Pods(ns)
+	for {
+		pod, _ := pi.Get(ctx, podName, metav1.GetOptions{})
+		if pod != nil && pod.Status.Phase == v1.PodPending {
+			time.Sleep(time.Second * 1)
+		} else{
+			break
+		}
+	}
 
 	return e.client.CoreV1().Pods(ns).GetLogs(podName, &v1.PodLogOptions{Follow: true}).
 		Stream(ctx)

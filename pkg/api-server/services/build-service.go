@@ -7,7 +7,7 @@ import (
 	"github.com/task-executor/pkg/api-server/querybuilder"
 )
 
-type BuildService struct {}
+type BuildService struct{}
 
 func NewBuildService() BuildService {
 	return BuildService{}
@@ -62,4 +62,16 @@ func (bs BuildService) getFieldMapping() map[string]querybuilder.Column {
 	fieldMap["createdTs"] = querybuilder.NewColumn("created_ts", querybuilder.TimestampType)
 	fieldMap["updatedTs"] = querybuilder.NewColumn("updated_ts", querybuilder.TimestampType)
 	return fieldMap
+}
+
+func (bs BuildService) GetStatus(stepId int64) (*api.BuildStatus, error) {
+	selectStmt := `SELECT s.status, bs.name FROM step s
+ 	INNER JOIN build_status bs ON s.status = bs.id
+	WHERE s.id=$1`
+	row := dbstore.DataSource.QueryRow(selectStmt, stepId)
+
+	status := &api.BuildStatus{}
+	err := row.Scan(&status.Id, &status.Name)
+
+	return status, err
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/gorilla/mux"
 	staticdata "github.com/task-executor/pkg/api-server/static-data"
 	"os"
 	"os/signal"
@@ -18,7 +19,6 @@ import (
 
 	"net/http"
 )
-
 
 func registerShutdown(server *http.Server) {
 	c := make(chan os.Signal, 1)
@@ -43,7 +43,6 @@ func registerShutdown(server *http.Server) {
 	}()
 }
 
-
 func main() {
 	utils.InitLogs(log.DebugLevel)
 
@@ -61,14 +60,15 @@ func main() {
 
 	staticdata.Init()
 
-	mux := http.NewServeMux()
-
+	//router := http.NewServeMux()
+	router := mux.NewRouter()
 	//TODO::
 	scmClient, _ := github.New()
-	mux.HandleFunc("/api/builds", controllers.HandleBuild)
-	mux.HandleFunc("/api/steps", controllers.HandleStep)
-	mux.HandleFunc("/api/logs", controllers.HandleLogStream)
-	mux.HandleFunc("/api/callback", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/api/builds", controllers.HandleBuild)
+	router.HandleFunc("/api/steps", controllers.HandleStep)
+	router.HandleFunc("/api/steps/{id}/status", controllers.HandleStepStatus)
+	router.HandleFunc("/api/logs", controllers.HandleLogStream)
+	router.HandleFunc("/api/callback", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			hook, err := scmClient.Webhooks.Parse(r, w)
 			if err != nil {
@@ -81,13 +81,26 @@ func main() {
 
 	server := http.Server{
 		Addr:    fmt.Sprintf(":%s", config.Server.Port),
-		Handler: mux,
+		Handler: router,
 	}
 
 	registerShutdown(&server)
 
-	err = server.ListenAndServe()
-	if err != nil {
-		log.Error(err)
-	}
+	//go func() {
+		err = server.ListenAndServe()
+		if err != nil {
+			log.Error(err)
+		}
+	//}()
+
+	////TODO: Also start runner at the same time
+	//go func() {
+	//	time.Sleep(time.Second * 5)
+	//	runner := runner.NewRunner()
+	//	runner.Run()
+	//}()
+
+	//for {
+	//}
+
 }

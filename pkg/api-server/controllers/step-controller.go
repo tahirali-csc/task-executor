@@ -7,7 +7,6 @@ import (
 	"github.com/task-executor/pkg/api"
 	"github.com/task-executor/pkg/api-server/services"
 	staticdata "github.com/task-executor/pkg/api-server/static-data"
-	"github.com/task-executor/pkg/core"
 	runner "github.com/task-executor/pkg/runner"
 	"io/ioutil"
 	"net/http"
@@ -28,29 +27,56 @@ func HandleStep(w http.ResponseWriter, r *http.Request) {
 
 func HandleStepStatus(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
-		stepIdVar := mux.Vars(r)["id"]
-		stepId, _ := strconv.ParseInt(stepIdVar, 10, 64)
-		status, err := buildService.GetStatus(stepId)
-		if err != nil {
-			log.Println(err)
-			log.Println("Can not get status")
-			return
-		}
-
-		dat, err := json.Marshal(status)
-		if err != nil {
-			log.Error(err)
-			http.Error(w, "Unable to parse data", 500)
-			return
-		}
-
-		_, err = w.Write(dat)
-		if err != nil {
-			log.Error(err)
-			http.Error(w, "Unable to convert", 500)
-			return
-		}
+		findStatus(w, r)
 	}
+	//} else if r.Method == http.MethodPost {
+	//	updateStatus(w, r)
+	//}
+}
+
+func HandleStepStatusUpdate(w http.ResponseWriter, r *http.Request){
+	if r.Method == http.MethodPost {
+		updateStatus(w, r)
+	}
+}
+
+func updateStatus(w http.ResponseWriter, r *http.Request) {
+	stepIdVar := mux.Vars(r)["id"]
+	status := mux.Vars(r)["status"]
+	statusId := staticdata.BuildStatusList[status].Id
+	stepId, _ := strconv.ParseInt(stepIdVar, 10, 64)
+	err := buildService.UpdateStatus(stepId, statusId)
+	if err != nil {
+		log.Println(err)
+		log.Println("Can not update status")
+		return
+	}
+}
+
+func findStatus(w http.ResponseWriter, r *http.Request) {
+	stepIdVar := mux.Vars(r)["id"]
+	stepId, _ := strconv.ParseInt(stepIdVar, 10, 64)
+	status, err := buildService.GetStatus(stepId)
+	if err != nil {
+		log.Println(err)
+		log.Println("Can not get status")
+		return
+	}
+
+	dat, err := json.Marshal(status)
+	if err != nil {
+		log.Error(err)
+		http.Error(w, "Unable to parse data", 500)
+		return
+	}
+
+	_, err = w.Write(dat)
+	if err != nil {
+		log.Error(err)
+		http.Error(w, "Unable to convert", 500)
+		return
+	}
+	return
 }
 
 type stepExec struct {
@@ -99,18 +125,26 @@ func createStep(r *http.Request, w http.ResponseWriter) {
 		return
 	}
 
-	rs := &core.StepRun{
-		Name:     step.Name,
-		BuildId:  step.BuildId,
-		Args:     step.Args,
-		Cmd:      step.Cmd,
-		Image:    step.Image,
-		Memory:   step.Memory,
-		CpuLimit: step.CpuLimit,
-		Step:     res,
+	dat, err := json.Marshal(res)
+	if err != nil {
+		log.Error(err)
+		http.Error(w, "Unable to parse data", 500)
+		return
 	}
+	w.Write(dat)
 
-	go stepRunner.Run(rs)
+	//rs := &core.StepRun{
+	//	Name:     step.Name,
+	//	BuildId:  step.BuildId,
+	//	Args:     step.Args,
+	//	Cmd:      step.Cmd,
+	//	Image:    step.Image,
+	//	Memory:   step.Memory,
+	//	CpuLimit: step.CpuLimit,
+	//	Step:     res,
+	//}
+
+	//go stepRunner.Run(rs)
 }
 
 func findStep(r *http.Request, w http.ResponseWriter) {

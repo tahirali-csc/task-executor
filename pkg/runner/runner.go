@@ -47,7 +47,7 @@ func (runner *Runner) Run(step *core.StepRun) {
 		return
 	}
 
-	err = engine.Start(context.Background(), &engine2.Spec{
+	spec := &engine2.Spec{
 		Image:   step.Image,
 		Command: step.Cmd,
 		Args:    step.Args,
@@ -56,10 +56,14 @@ func (runner *Runner) Run(step *core.StepRun) {
 			//TODO: Can add more randomization
 			UID: fmt.Sprintf("te-step-%d", step.Step.Id),
 		},
-	})
+	}
+
+	err = engine.Start(context.Background(), spec)
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
+	engine.Wait(context.Background(), spec)
+	log.Println("I am done")
 }

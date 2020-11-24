@@ -14,4 +14,6 @@ type Engine interface {
 	Start(context.Context, *Spec) error
 
 	Tail(ctx context.Context, spec *Spec) (io.ReadCloser, error)
+
+	Wait(ctx context.Context, spec *Spec) error
 }

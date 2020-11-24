@@ -94,7 +94,7 @@ func (e *kubeEngine) Tail(ctx context.Context, spec *engine.Spec) (io.ReadCloser
 		pod, _ := pi.Get(ctx, podName, metav1.GetOptions{})
 		if pod != nil && pod.Status.Phase == v1.PodPending {
 			time.Sleep(time.Second * 1)
-		} else{
+		} else {
 			break
 		}
 	}
@@ -137,6 +137,28 @@ func (e *kubeEngine) Tail(ctx context.Context, spec *engine.Spec) (io.ReadCloser
 	//	SubResource("log").
 	//	VersionedParams(opts, scheme.ParameterCodec).
 	//	Stream(ctx)
+}
+
+func (e *kubeEngine) Wait(ctx context.Context, spec *engine.Spec) error {
+	ns := spec.Metadata.Namespace
+	podName := spec.Metadata.UID
+
+	wi, err := e.client.CoreV1().Pods(ns).Watch(ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	for ev := range wi.ResultChan() {
+		pod := ev.Object.(*v1.Pod)
+		if pod.Name == podName && pod.Namespace == ns {
+			if pod.Status.Phase == v1.PodSucceeded ||
+				pod.Status.Phase == v1.PodFailed ||
+				pod.Status.Phase == v1.PodUnknown {
+				return nil
+			}
+		}
+	}
+	return nil
 }
 
 // helper function returns a kubernetes pod for the

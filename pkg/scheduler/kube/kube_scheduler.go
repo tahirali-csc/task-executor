@@ -34,6 +34,8 @@ func (k KubeScheduler) Schedule(ctx context.Context, stage *core.Stage, initCont
 		Spec: batchv1.JobSpec{
 			Template: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
+					//TODO:
+					ServiceAccountName: "te",
 					RestartPolicy:  corev1.RestartPolicyNever,
 					InitContainers: k.newInitContainers(initContainers),
 					Containers: []corev1.Container{

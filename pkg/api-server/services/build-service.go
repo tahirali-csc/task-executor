@@ -76,9 +76,9 @@ func (bs BuildService) GetStatus(stepId int64) (*api.BuildStatus, error) {
 	return status, err
 }
 
-func (bs BuildService) UpdateStatus(stepId int64, statusId int) error {
 
-	updateStmt := `UPDATE step SET status=$1 WHERE id=$2`
+func (bs BuildService) UpdateStatus(stepId int64, statusId int) error {
+	updateStmt := `UPDATE build SET status=$1 WHERE id=$2`
 	_, err := dbstore.DataSource.Exec(updateStmt, statusId, stepId)
 	return err
 }

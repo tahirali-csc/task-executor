@@ -45,7 +45,7 @@ func updateStatus(w http.ResponseWriter, r *http.Request) {
 	status := mux.Vars(r)["status"]
 	statusId := staticdata.BuildStatusList[status].Id
 	stepId, _ := strconv.ParseInt(stepIdVar, 10, 64)
-	err := buildService.UpdateStatus(stepId, statusId)
+	err := stepService.UpdateStatus(stepId, statusId)
 	if err != nil {
 		log.Println(err)
 		log.Println("Can not update status")

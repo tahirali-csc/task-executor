@@ -80,3 +80,10 @@ func (ss StepService) getFieldMapping() map[string]querybuilder.Column {
 	fieldMap["updatedTs"] = querybuilder.NewColumn("updated_ts", querybuilder.TimestampType)
 	return fieldMap
 }
+
+
+func (ss StepService) UpdateStatus(stepId int64, statusId int) error {
+	updateStmt := `UPDATE step SET status=$1 WHERE id=$2`
+	_, err := dbstore.DataSource.Exec(updateStmt, statusId, stepId)
+	return err
+}

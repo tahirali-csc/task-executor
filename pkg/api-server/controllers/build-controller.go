@@ -2,12 +2,15 @@ package controllers
 
 import (
 	"encoding/json"
+	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 	"github.com/task-executor/pkg/api"
 	"github.com/task-executor/pkg/api-server/services"
+	staticdata "github.com/task-executor/pkg/api-server/static-data"
 	"github.com/task-executor/pkg/api-server/trigger"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 )
 
 var buildService = services.NewBuildService()
@@ -18,6 +21,12 @@ func HandleBuild(w http.ResponseWriter, r *http.Request) {
 		createBuild(r, w)
 	} else if r.Method == http.MethodGet {
 		findBuild(r, w)
+	}
+}
+
+func HandleBuildStatus(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		updateBuildStatus(r, w)
 	}
 }
 
@@ -80,25 +89,18 @@ func createBuild(r *http.Request, w http.ResponseWriter) {
 
 	buildTrigger, err := trigger.NewBuildTrigger()
 	buildTrigger.Trigger(repo)
+}
 
-	//res, err := buildService.Create(build)
-	//if err != nil {
-	//	log.Error(err)
-	//	http.Error(w, "Unable to save", 500)
-	//	return
-	//}
-	//
-	//data, err = json.Marshal(res)
-	//if err != nil {
-	//	log.Error(err)
-	//	http.Error(w, "Unable to convert", 500)
-	//	return
-	//}
-	//
-	//_, err = w.Write(data)
-	//if err != nil {
-	//	log.Error(err)
-	//	http.Error(w, "Unable to convert", 500)
-	//	return
-	//}
+
+func updateBuildStatus(r *http.Request, w http.ResponseWriter) {
+	buildIdVar := mux.Vars(r)["id"]
+	status := mux.Vars(r)["status"]
+	statusId := staticdata.BuildStatusList[status].Id
+	buildId, _ := strconv.ParseInt(buildIdVar, 10, 64)
+	err := buildService.UpdateStatus(buildId, statusId)
+	if err != nil {
+		log.Println(err)
+		log.Println("Can not update status")
+		return
+	}
 }

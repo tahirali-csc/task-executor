@@ -65,6 +65,7 @@ func main() {
 	//TODO::
 	scmClient, _ := github.New()
 	router.HandleFunc("/api/builds", controllers.HandleBuild)
+	router.HandleFunc("/api/builds/{id}/status/{status}", controllers.HandleBuildStatus)
 	router.HandleFunc("/api/steps", controllers.HandleStep)
 	router.HandleFunc("/api/steps/{id}/status", controllers.HandleStepStatus)
 	router.HandleFunc("/api/steps/{id}/status/{status}", controllers.HandleStepStatusUpdate)
@@ -88,10 +89,10 @@ func main() {
 	registerShutdown(&server)
 
 	//go func() {
-		err = server.ListenAndServe()
-		if err != nil {
-			log.Error(err)
-		}
+	err = server.ListenAndServe()
+	if err != nil {
+		log.Error(err)
+	}
 	//}()
 
 	////TODO: Also start runner at the same time

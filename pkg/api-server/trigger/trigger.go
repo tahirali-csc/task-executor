@@ -32,7 +32,7 @@ func NewBuildTrigger() (*BuildTrigger, error) {
 	return buildTrigger, nil
 }
 
-func (trigger *BuildTrigger) Trigger(repo *api.Repo) error {
+func (trigger *BuildTrigger) Trigger(repo *api.Repo) (*api.Build, error) {
 	//Start in Pending State
 	pendingStatus := staticdata.BuildStatusList[api.PendingBuildStatus]
 
@@ -48,18 +48,18 @@ func (trigger *BuildTrigger) Trigger(repo *api.Repo) error {
 
 	res, err := trigger.BuildService.Create(&pendingBuild)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Fetch Secret
 	secret, err := injectSecret(repo)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	secretObj, err := secret.Get(repo.SecretName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var cmd []string
@@ -124,7 +124,7 @@ func (trigger *BuildTrigger) Trigger(repo *api.Repo) error {
 		BuildId: res.Id,
 	}, []core.InitContainer{scmCloneContainer})
 
-	return nil
+	return res, nil
 }
 
 //func scheduleBuild() {

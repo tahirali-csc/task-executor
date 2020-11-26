@@ -87,3 +87,17 @@ func (ss StepService) UpdateStatus(stepId int64, statusId int) error {
 	_, err := dbstore.DataSource.Exec(updateStmt, statusId, stepId)
 	return err
 }
+
+
+func (ss StepService) GetStatus(stepId int64) (*api.BuildStatus, error) {
+
+	selectStmt := `SELECT s.status, bs.name FROM step s
+	INNER JOIN build_status bs ON s.status = bs.id
+	WHERE s.id=$1`
+	row := dbstore.DataSource.QueryRow(selectStmt, stepId)
+
+	status := &api.BuildStatus{}
+	err := row.Scan(&status.Id, &status.Name)
+
+	return status, err
+}

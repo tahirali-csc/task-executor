@@ -64,11 +64,18 @@ func (bs BuildService) getFieldMapping() map[string]querybuilder.Column {
 	return fieldMap
 }
 
-func (bs BuildService) GetStatus(stepId int64) (*api.BuildStatus, error) {
-	selectStmt := `SELECT s.status, bs.name FROM step s
- 	INNER JOIN build_status bs ON s.status = bs.id
-	WHERE s.id=$1`
-	row := dbstore.DataSource.QueryRow(selectStmt, stepId)
+func (bs BuildService) GetStatus(buildId int64) (*api.BuildStatus, error) {
+
+	selectStmt := `SELECT b.status, bs.name
+	FROM build b
+	INNER JOIN build_status bs ON b.status = bs.id
+	WHERE b.id=$1`
+
+
+	//selectStmt := `SELECT s.status, bs.name FROM step s
+ 	//INNER JOIN build_status bs ON s.status = bs.id
+	//WHERE s.id=$1`
+	row := dbstore.DataSource.QueryRow(selectStmt, buildId)
 
 	status := &api.BuildStatus{}
 	err := row.Scan(&status.Id, &status.Name)

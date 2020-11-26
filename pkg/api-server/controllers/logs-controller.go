@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
+	"time"
 )
 
 func HandleLogStream(w http.ResponseWriter, r *http.Request) {
@@ -64,20 +65,64 @@ func HandleLogStream(w http.ResponseWriter, r *http.Request) {
 
 func streamSteps(buildId int64, stepsChan chan *api.Step, stepsDoneChan chan bool) {
 
+	//go func() {
+	//	staticdata.EventBroker.Subscribe(buildId, func(step *api.Step) {
+	//		log.Println("Receiving...", buildId, step)
+	//		stepsChan <- step
+	//	})
+	//}()
+
+	//go func() {
+
+	stepsMap := make(map[int64]struct{})
+	defer func() {
+		log.Println("Quiting channel..........")
+		close(stepsChan)
+	}()
+
+	for {
+		err := fetchSteps(buildId, stepsMap, stepsChan)
+		if err != nil {
+			stepsDoneChan <- true
+			return
+		}
+
+		status, err := buildService.GetStatus(buildId)
+		log.Println("The current status::::", status)
+		if status.Name == api.FinishedBuildStatus {
+			_ = fetchSteps(buildId, stepsMap, stepsChan)
+			//if err != nil {
+				stepsDoneChan <- true
+				return
+			//}
+		}
+
+		time.Sleep(time.Second * 10)
+	}
+	//}()
+
+	//stepsDoneChan <- true
+
+	//close(stepsChan)
+}
+
+func fetchSteps(buildId int64, stepsMap map[int64]struct{}, stepsChan chan *api.Step) error {
 	steps, err := stepService.GetSteps(buildId)
 	if err != nil {
 		log.Println(err)
-		return
+		return err
 	}
 
-	for _, s := range steps {
-		log.Println("Sending:::", s.Id)
-		stepsChan <- s
+	for i := 0; i < len(steps); i++ {
+		s := steps[i]
+		_, ok := stepsMap[s.Id]
+		if !ok {
+			stepsMap[s.Id] = struct{}{}
+			log.Println("Sending:::", s.Id)
+			stepsChan <- s
+		}
 	}
-
-	stepsDoneChan <- true
-
-	//close(stepsChan)
+	return err
 }
 
 func tailLogs(stepsChan chan *api.Step, stepsDoneChan chan bool, logsChan chan []byte,

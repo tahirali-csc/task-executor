@@ -25,18 +25,20 @@ func HandleStep(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func HandleStepStatus(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodGet {
-		findStatus(w, r)
-	}
-	//} else if r.Method == http.MethodPost {
-	//	updateStatus(w, r)
-	//}
-}
+//func HandleStepStatus(w http.ResponseWriter, r *http.Request) {
+//	if r.Method == http.MethodGet {
+//		findStatus(w, r)
+//	}
+//	//} else if r.Method == http.MethodPost {
+//	//	updateStatus(w, r)
+//	//}
+//}
 
-func HandleStepStatusUpdate(w http.ResponseWriter, r *http.Request){
+func HandleStepStatus(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		updateStatus(w, r)
+	} else if r.Method == http.MethodGet {
+		findStatus(w, r)
 	}
 }
 
@@ -124,6 +126,9 @@ func createStep(r *http.Request, w http.ResponseWriter) {
 		http.Error(w, "Unable to parse data", 500)
 		return
 	}
+
+	//staticdata.StepChannel <- res
+	staticdata.EventBroker.Publish(step.BuildId, res)
 
 	dat, err := json.Marshal(res)
 	if err != nil {

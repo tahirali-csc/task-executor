@@ -68,7 +68,7 @@ func main() {
 	router.HandleFunc("/api/builds/{id}/status/{status}", controllers.HandleBuildStatus)
 	router.HandleFunc("/api/steps", controllers.HandleStep)
 	router.HandleFunc("/api/steps/{id}/status", controllers.HandleStepStatus)
-	router.HandleFunc("/api/steps/{id}/status/{status}", controllers.HandleStepStatusUpdate)
+	router.HandleFunc("/api/steps/{id}/status/{status}", controllers.HandleStepStatus)
 	router.HandleFunc("/api/logs", controllers.HandleLogStream)
 	router.HandleFunc("/api/callback", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {

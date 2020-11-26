@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
-	"github.com/task-executor/pkg/api"
 	"github.com/task-executor/pkg/api-server/services"
 	staticdata "github.com/task-executor/pkg/api-server/static-data"
 	"github.com/task-executor/pkg/api-server/trigger"
@@ -54,7 +53,7 @@ func findBuild(r *http.Request, w http.ResponseWriter) {
 }
 
 func createBuild(r *http.Request, w http.ResponseWriter) {
-	data, err := ioutil.ReadAll(r.Body)
+	_, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Error(err)
 		http.Error(w, "Unable to read body", 500)
@@ -79,18 +78,25 @@ func createBuild(r *http.Request, w http.ResponseWriter) {
 
 	//TODO: Branch??
 
-	build := &api.Build{}
-	err = json.Unmarshal(data, build)
+	//build := &api.Build{}
+	//err = json.Unmarshal(data, build)
+	//if err != nil {
+	//	log.Error(err)
+	//	http.Error(w, "Unable to serialize", 500)
+	//	return
+	//}
+
+	buildTrigger, err := trigger.NewBuildTrigger()
+	build, err := buildTrigger.Trigger(repo)
 	if err != nil {
 		log.Error(err)
-		http.Error(w, "Unable to serialize", 500)
+		http.Error(w, "Unable to save", 500)
 		return
 	}
 
-	buildTrigger, err := trigger.NewBuildTrigger()
-	buildTrigger.Trigger(repo)
+	dat, _ := json.Marshal(build)
+	w.Write(dat)
 }
-
 
 func updateBuildStatus(r *http.Request, w http.ResponseWriter) {
 	buildIdVar := mux.Vars(r)["id"]

@@ -65,15 +65,6 @@ func HandleLogStream(w http.ResponseWriter, r *http.Request) {
 
 func streamSteps(buildId int64, stepsChan chan *api.Step, stepsDoneChan chan bool) {
 
-	//go func() {
-	//	staticdata.EventBroker.Subscribe(buildId, func(step *api.Step) {
-	//		log.Println("Receiving...", buildId, step)
-	//		stepsChan <- step
-	//	})
-	//}()
-
-	//go func() {
-
 	stepsMap := make(map[int64]struct{})
 	defer func() {
 		log.Println("Quiting channel..........")

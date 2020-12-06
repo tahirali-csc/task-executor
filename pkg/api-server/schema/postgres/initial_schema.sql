@@ -1,3 +1,40 @@
+CREATE OR REPLACE FUNCTION notify_event()
+    RETURNS trigger
+    LANGUAGE plpgsql
+AS
+$function$
+
+DECLARE
+    data         json;
+    notification json;
+
+BEGIN
+
+    -- Convert the old or new row to JSON, based on the kind of action.
+    -- Action = DELETE?             -> OLD row
+    -- Action = INSERT or UPDATE?   -> NEW row
+    IF (TG_OP = 'DELETE') THEN
+        data = row_to_json(OLD);
+    ELSE
+        data = row_to_json(NEW);
+    END IF;
+
+    -- Contruct the notification as a JSON string.
+    notification = json_build_object(
+            'table', TG_TABLE_NAME,
+            'action', TG_OP,
+            'data', data);
+
+
+    -- Execute pg_notify(channel, notification)
+    PERFORM pg_notify('events', notification::text);
+
+    -- Result is ignored since this is an AFTER trigger
+    RETURN NULL;
+END;
+$function$
+;
+
 CREATE TABLE build_status (
 	id int4 NOT NULL GENERATED ALWAYS AS IDENTITY,
 	"name" varchar(50) NULL,
@@ -54,6 +91,18 @@ CREATE TABLE build(
 	CONSTRAINT build_pk PRIMARY KEY (id),
 	CONSTRAINT build_status_fk FOREIGN KEY (status) REFERENCES build_status(id)
 );
+drop trigger if exists build_notify_event on build;
+create trigger build_notify_event
+    after
+        insert
+        or
+        delete
+        or
+        update
+    on
+        build
+    for each row
+execute function notify_event();
 
 CREATE TABLE step(
     id int8 NOT NULL GENERATED ALWAYS AS IDENTITY,
@@ -68,3 +117,17 @@ CREATE TABLE step(
 	CONSTRAINT step_build_fk FOREIGN KEY (build_id) REFERENCES build(id),
 	CONSTRAINT step_status_fk FOREIGN KEY (status) REFERENCES build_status(id)
 );
+drop trigger if exists step_notify_event on step;
+create trigger step_notify_event
+    after
+        insert
+        or
+        delete
+        or
+        update
+    on
+        step
+    for each row
+execute function notify_event();
+
+

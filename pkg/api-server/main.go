@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/task-executor/pkg/api-server/events"
+	"github.com/task-executor/pkg/api-server/services"
 	staticdata "github.com/task-executor/pkg/api-server/static-data"
 	"os"
 	"os/signal"
@@ -60,6 +62,16 @@ func main() {
 
 	staticdata.Init()
 
+	go func() {
+		staticdata.EventStream = events.NewDBEvents()
+		staticdata.EventStream.NewTopic("build")
+		staticdata.EventStream.NewTopic("step")
+
+		staticdata.BuildStreamer = services.NewBuildStreamer(staticdata.EventStream)
+		go staticdata.BuildStreamer.Start()
+		staticdata.EventStream.Start()
+	}()
+
 	//router := http.NewServeMux()
 	router := mux.NewRouter()
 	//TODO::
@@ -70,6 +82,8 @@ func main() {
 	router.HandleFunc("/api/steps/{id}/status", controllers.HandleStepStatus)
 	router.HandleFunc("/api/steps/{id}/status/{status}", controllers.HandleStepStatus)
 	router.HandleFunc("/api/logs", controllers.HandleLogStream)
+	router.HandleFunc("/api/testdeep", controllers.TestDeep)
+
 	router.HandleFunc("/api/callback", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			hook, err := scmClient.Webhooks.Parse(r, w)

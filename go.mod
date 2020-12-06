@@ -14,6 +14,7 @@ require (
 	github.com/googleapis/gnostic v0.5.3 // indirect
 	github.com/gorilla/mux v1.8.0
 	github.com/guregu/null v4.0.0+incompatible
+	github.com/karlseguin/ccache/v2 v2.0.6
 	github.com/lib/pq v1.8.0
 	github.com/moby/term v0.0.0-20201110203204-bea5bbe245bf // indirect
 	github.com/morikuni/aec v1.0.0 // indirect

@@ -136,7 +136,7 @@ func (e *kubeEngine) Tail(ctx context.Context, spec *engine.Spec) (io.ReadCloser
 	//	Resource("pods").
 	//	SubResource("log").
 	//	VersionedParams(opts, scheme.ParameterCodec).
-	//	Stream(ctx)
+	//	Subscribe(ctx)
 }
 
 func (e *kubeEngine) Wait(ctx context.Context, spec *engine.Spec) error {

@@ -26,6 +26,7 @@ type Build struct {
 	FinishedTs *time.Time
 	CreatedTs  time.Time
 	UpdatedTs  time.Time
+	Steps      []*Step
 }
 
 const BasicAuthType = "BasicAuth"

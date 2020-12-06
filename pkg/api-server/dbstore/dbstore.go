@@ -8,11 +8,12 @@ import (
 )
 
 var DataSource *sql.DB
+var ConnString string
 
 func Init(config *config.AppConfig) error {
-	connString := fmt.Sprintf("dbname=%s user=%s password=%s host=%s sslmode=disable",
+	ConnString = fmt.Sprintf("dbname=%s user=%s password=%s host=%s sslmode=disable",
 		config.Database.Name, config.Database.User, config.Database.Password, config.Database.Host)
-	db, err := sql.Open("postgres", connString)
+	db, err := sql.Open("postgres", ConnString)
 	if err != nil {
 		return err
 	}

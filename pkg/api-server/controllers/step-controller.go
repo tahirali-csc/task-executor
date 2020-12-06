@@ -128,7 +128,7 @@ func createStep(r *http.Request, w http.ResponseWriter) {
 	}
 
 	//staticdata.StepChannel <- res
-	staticdata.EventBroker.Publish(step.BuildId, res)
+	//staticdata.EventBroker.Publish(step.BuildId, res)
 
 	dat, err := json.Marshal(res)
 	if err != nil {

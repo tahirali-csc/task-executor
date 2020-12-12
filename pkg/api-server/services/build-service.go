@@ -42,7 +42,7 @@ func (bs BuildService) Filter(values map[string][]string) ([]api.Build, error) {
 	var builds []api.Build
 	for rows.Next() {
 		res := api.Build{}
-		//err := rows.Scan(&res.Id, &res.Project.Id, &res.Status.Id, &res.StartTs, &res.FinishedTs, &res.CreatedTs, &res.UpdatedTs)
+		err := rows.Scan(&res.Id, &res.RepoBranch.Id, &res.Status.Id, &res.StartTs, &res.FinishedTs, &res.CreatedTs, &res.UpdatedTs)
 
 		if err != nil {
 			return nil, err

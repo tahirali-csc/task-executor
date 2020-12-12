@@ -25,7 +25,7 @@ func NewColumn(name string, fieldType ColumnType) Column {
 }
 
 func GetFilterClause(values map[string][]string, columnInfo map[string]Column) (string, error) {
-	var cols []string
+	var filterCols []string
 	var sortCols []string
 	const SortBy = "sortBy"
 
@@ -34,10 +34,10 @@ func GetFilterClause(values map[string][]string, columnInfo map[string]Column) (
 			if info, ok := columnInfo[k]; ok {
 				switch info.Type {
 				case StringType:
-					cols = append(cols, fmt.Sprintf("%s='%s'", info.Name, v[0]))
+					filterCols = append(filterCols, fmt.Sprintf("%s='%s'", info.Name, v[0]))
 				case NumberType:
 					v, _ := strconv.ParseInt(v[0], 10, 64)
-					cols = append(cols, fmt.Sprintf("%s=%d", info.Name, v))
+					filterCols = append(filterCols, fmt.Sprintf("%s=%d", info.Name, v))
 				}
 			} else {
 				return "", errors.New(fmt.Sprintf("%s is undefined", k))
@@ -55,14 +55,21 @@ func GetFilterClause(values map[string][]string, columnInfo map[string]Column) (
 				}
 
 				if info, ok := columnInfo[col]; ok {
-					sortCols = append(sortCols, fmt.Sprintf("ORDER BY %s %s", info.Name, sortDir))
+					sortCols = append(sortCols, fmt.Sprintf("%s %s", info.Name, sortDir))
 				}
 			}
 		}
 	}
 
-	whereClause := strings.Join(cols, " AND ")
-	sortClause := strings.Join(sortCols, ",")
+	var whereClause string
+	if filterCols != nil && len(filterCols) > 0 {
+		whereClause = " WHERE " + strings.Join(filterCols, " AND ")
+	}
 
-	return fmt.Sprintf("WHERE %s\n%s", whereClause, sortClause), nil
+	if sortCols != nil && len(sortCols) > 0 {
+		whereClause = " ORDER BY " + strings.Join(sortCols, ",")
+	}
+
+	//return fmt.Sprintf("WHERE %s\n%s", whereClause, sortClause), nil
+	return whereClause, nil
 }

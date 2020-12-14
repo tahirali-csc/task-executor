@@ -26,7 +26,9 @@ func (ss StepService) Create(step *api.Step) (*api.Step, error) {
 }
 
 func (ss StepService) GetSteps(buildId int64) ([]*api.Step, error) {
-	selectStmt := `SELECT * FROM step WHERE build_id=$1`
+	selectStmt := `SELECT st.*, s.name as step_status FROM step st
+	INNER JOIN build_status s ON st.status = s.id
+	WHERE build_id=$1 ORDER BY id asc`
 	rows, err := dbstore.DataSource.Query(selectStmt, buildId)
 	if err != nil {
 		return nil, err
@@ -35,7 +37,8 @@ func (ss StepService) GetSteps(buildId int64) ([]*api.Step, error) {
 	var steps []*api.Step
 	for rows.Next() {
 		step := &api.Step{}
-		err := rows.Scan(&step.Id, &step.Build.Id, &step.Name, &step.Status.Id, &step.StartTs, &step.FinishedTs, &step.CreatedTs, &step.FinishedTs)
+		err := rows.Scan(&step.Id, &step.Build.Id, &step.Name, &step.Status.Id, &step.StartTs, &step.FinishedTs,
+			&step.CreatedTs, &step.FinishedTs, &step.Status.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -81,13 +84,11 @@ func (ss StepService) getFieldMapping() map[string]querybuilder.Column {
 	return fieldMap
 }
 
-
 func (ss StepService) UpdateStatus(stepId int64, statusId int) error {
 	updateStmt := `UPDATE step SET status=$1 WHERE id=$2`
 	_, err := dbstore.DataSource.Exec(updateStmt, statusId, stepId)
 	return err
 }
-
 
 func (ss StepService) GetStatus(stepId int64) (*api.BuildStatus, error) {
 

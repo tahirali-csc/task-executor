@@ -7,17 +7,24 @@ $function$
 DECLARE
     data         json;
     notification json;
-
+    status_name build_status.name%type;
 BEGIN
+
+    --Get Status name(in case of both status and build table)
+    SELECT name INTO status_name FROM build_status
+	WHERE id = NEW.status;
 
     -- Convert the old or new row to JSON, based on the kind of action.
     -- Action = DELETE?             -> OLD row
     -- Action = INSERT or UPDATE?   -> NEW row
     IF (TG_OP = 'DELETE') THEN
-        data = row_to_json(OLD);
+--         data = row_to_json(OLD);
+        SELECT row_to_json(r) INTO DATA FROM (SELECT OLD.*, status_name) r;
     ELSE
-        data = row_to_json(NEW);
+--         data = row_to_json(NEW);
+        SELECT row_to_json(r) INTO DATA FROM (SELECT NEW.*, status_name) r;
     END IF;
+
 
     -- Contruct the notification as a JSON string.
     notification = json_build_object(

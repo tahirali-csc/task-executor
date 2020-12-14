@@ -120,8 +120,9 @@ WHERE b.id IN `
 		builds = append(builds, b)
 	}
 
-	selectStmt = `SELECT id, build_id, name, status, start_ts, finished_ts, created_ts, updated_ts
-FROM step
+	selectStmt = `SELECT st.id, st.build_id, st.name, st.status, st.start_ts, st.finished_ts, st.created_ts, st.updated_ts, s.name
+FROM step st
+INNER JOIN build_status s ON st.status = s.id
 WHERE build_id IN`
 
 	selectStmt = selectStmt + "(" + sid + ")"
@@ -133,7 +134,8 @@ WHERE build_id IN`
 
 	for rows.Next() {
 		s := &api.Step{}
-		if err := rows.Scan(&s.Id, &s.Build.Id, &s.Name, &s.Status.Id, &s.StartTs, &s.FinishedTs, &s.CreatedTs, &s.UpdatedTs); err != nil {
+		if err := rows.Scan(&s.Id, &s.Build.Id, &s.Name, &s.Status.Id, &s.StartTs, &s.FinishedTs, &s.CreatedTs,
+			&s.UpdatedTs, &s.Status.Name); err != nil {
 			return nil, err
 		}
 		buildMap[s.Build.Id].Steps = append(buildMap[s.Build.Id].Steps, s)

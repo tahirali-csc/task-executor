@@ -18,7 +18,7 @@ import (
 
 func tailStep(s *api.Step, engine engine2.Engine, logsChan chan []byte, wg *sync.WaitGroup) {
 	defer wg.Done()
-	log.Println("Spec:::", s)
+	//log.Println("Spec:::", s)
 
 	spec := &engine2.Spec{
 		Metadata: engine2.Metadata{
@@ -52,6 +52,7 @@ func HandleLogStream(w http.ResponseWriter, r *http.Request) {
 
 	buildNumber, _ := strconv.ParseInt(buildNumberStr, 10, 64)
 	//TODO: Review the package redeclaration
+	log.Debug("Straming Build Number==", buildNumber)
 
 	h := w.Header()
 	h.Set("Content-Type", "text/event-stream")
@@ -75,14 +76,23 @@ func HandleLogStream(w http.ResponseWriter, r *http.Request) {
 
 	logsChan := make(chan []byte)
 	stepsChan := make(chan *api.Step)
-	stepsSeenSoFar := make(map[int64]struct{})
 	var wg sync.WaitGroup
 
 	//Tail log steps
 	go func() {
+		stepsSeenSoFar := make(map[int64]struct{})
 		for step := range stepsChan {
+			log.Println("Status:::", step.Status)
+			//Wait if pending
+			if step.Status.Name == api.PendingBuildStatus {
+				continue
+			}
+
 			_, ok := stepsSeenSoFar[step.Id]
 			if !ok {
+				stepsSeenSoFar[step.Id] = struct{}{}
+
+				log.Debug("Starting tail log....", step.Id, stepsSeenSoFar)
 				wg.Add(1)
 				go tailStep(step, engine, logsChan, &wg)
 			}
@@ -98,7 +108,6 @@ func HandleLogStream(w http.ResponseWriter, r *http.Request) {
 
 	for _, s := range steps {
 		stepsChan <- s
-		stepsSeenSoFar[s.Id] = struct{}{}
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -116,7 +125,8 @@ func HandleLogStream(w http.ResponseWriter, r *http.Request) {
 				stepsChan <- step
 
 			case build := <-streamer.BuildChannel:
-				if buildNumber == build.Id && build.Status.Id == 3 {
+				log.Debug("Got build event:::", build)
+				if buildNumber == build.Id && build.Status.Name == api.FinishedBuildStatus {
 					//Allow steps to finish streaming
 					wg.Wait()
 					//TODO:??
@@ -137,6 +147,19 @@ func HandleLogStream(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, "\n\n")
 		f.Flush()
 	}
+
+	w.Write(formatSSE("close", ""))
+	f.Flush()
+}
+func formatSSE(event string, data string) []byte {
+	eventPayload := "event: " + event + "\n"
+	// dataLines := strings.Split(data, "\n")
+	// for _, line := range dataLines {
+	// 	eventPayload = eventPayload + "data: " + line + "\n"
+	// }
+	eventPayload = eventPayload + "data: " + data + "\n\n"
+	// eventPayload = eventPayload + "data: " + data + "\n"
+	return []byte(eventPayload + "\n\n")
 }
 
 func TestDeep(w http.ResponseWriter, r *http.Request) {

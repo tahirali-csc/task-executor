@@ -13,13 +13,17 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 )
 
-func tailStep(s *api.Step, engine engine2.Engine, logsChan chan []byte, wg *sync.WaitGroup) {
-	defer wg.Done()
-	//log.Println("Spec:::", s)
+type logInfo struct {
+	StepId  int64
+	Message string
+}
 
+func tailStep(s *api.Step, engine engine2.Engine, logsChan chan *logInfo, wg *sync.WaitGroup, notifyChan chan []byte) {
+	defer wg.Done()
 	spec := &engine2.Spec{
 		Metadata: engine2.Metadata{
 			UID:       fmt.Sprintf("te-step-%d", s.Id),
@@ -33,15 +37,26 @@ func tailStep(s *api.Step, engine engine2.Engine, logsChan chan []byte, wg *sync
 		return
 	}
 
+	//d, _ := json.Marshal(map[string]interface{}{
+	//	"StepId": s.Id,
+	//	"Status": "Started",
+	//})
+	//notifyChan <- d
+
 	rd := bufio.NewReader(reader)
 	for {
 		dat, _, err := rd.ReadLine()
 		if err != nil {
 			log.Println(fmt.Sprintf("%d", s.Id) + " :: I am done!!!")
+			d, _ := json.Marshal(map[string]interface{}{
+				"StepId": s.Id,
+				"Status": "Finished",
+			})
+			notifyChan <- d
 			return
 		}
-		log.Println(fmt.Sprintf("%d", s.Id) + string(dat))
-		logsChan <- dat
+		log.Debug(fmt.Sprintf("%d", s.Id) + string(dat))
+		logsChan <- &logInfo{StepId: s.Id, Message: string(dat)}
 	}
 
 }
@@ -74,15 +89,18 @@ func HandleLogStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logsChan := make(chan []byte)
+	logsChan := make(chan *logInfo)
 	stepsChan := make(chan *api.Step)
+	notifyChan := make(chan []byte)
+	doneStreamingChan := make(chan bool)
 	var wg sync.WaitGroup
 
 	//Tail log steps
 	go func() {
 		stepsSeenSoFar := make(map[int64]struct{})
 		for step := range stepsChan {
-			log.Println("Status:::", step.Status)
+			//log.Println("Status:::", step.Status)
+
 			//Wait if pending
 			if step.Status.Name == api.PendingBuildStatus {
 				continue
@@ -94,72 +112,225 @@ func HandleLogStream(w http.ResponseWriter, r *http.Request) {
 
 				log.Debug("Starting tail log....", step.Id, stepsSeenSoFar)
 				wg.Add(1)
-				go tailStep(step, engine, logsChan, &wg)
+
+				d, _ := json.Marshal(map[string]interface{}{
+					"StepId": step.Id,
+					"Status": "Started",
+				})
+				notifyChan <- d
+
+				go tailStep(step, engine, logsChan, &wg, notifyChan)
 			}
 		}
 	}()
 
-	//Read all steps initially
-	steps, err := stepService.GetSteps(buildNumber)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	for _, s := range steps {
-		stepsChan <- s
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	streamer := staticdata.BuildStreamer.Subscribe(ctx, buildNumber)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	//Read live events from DB + Polling results
 	go func() {
-		for {
-			select {
-			case step := <-streamer.StepChannel:
-				stepsChan <- step
+		//Read all steps initially
+		steps, err := stepService.GetSteps(buildNumber)
+		if err != nil {
+			log.Error(err)
+			return
+		}
 
-			case build := <-streamer.BuildChannel:
-				log.Debug("Got build event:::", build)
-				if buildNumber == build.Id && build.Status.Name == api.FinishedBuildStatus {
-					//Allow steps to finish streaming
-					wg.Wait()
-					//TODO:??
-					ctx.Done()
-					cancel()
-					close(logsChan)
-					return
+		for _, s := range steps {
+			stepsChan <- s
+		}
+
+		//Subscribe to streamer events
+		ctx, cancel := context.WithCancel(context.Background())
+		streamer := staticdata.BuildStreamer.Subscribe(ctx, buildNumber)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		//Read live events from DB + Polling results
+		go func() {
+			for {
+				select {
+				case step := <-streamer.StepChannel:
+					stepsChan <- step
+
+				case build := <-streamer.BuildChannel:
+					log.Debug("Got build event:::", build)
+					if buildNumber == build.Id && build.Status.Name == api.FinishedBuildStatus {
+						//Allow steps to finish streaming
+						wg.Wait()
+						//TODO:??
+						ctx.Done()
+						cancel()
+						doneStreamingChan <- true
+						//close(logsChan)
+						return
+					}
 				}
 			}
-		}
+		}()
+
 	}()
 
-	//Waiting for logs
 	enc := json.NewEncoder(w)
-	for l := range logsChan {
-		io.WriteString(w, "data: ")
-		enc.Encode(string(l))
-		io.WriteString(w, "\n\n")
-		f.Flush()
+L:
+	for {
+		select {
+		case l := <-logsChan:
+			_ = formatSSEMessage(w, "", l, enc, f)
+		case notify := <-notifyChan:
+			log.Debug("Sending Notify", string(notify))
+			//TODO: Review
+			//dat, _ := json.Marshal(notify)
+			nn := formatSSE("notify", string(notify))
+			w.Write(nn)
+			f.Flush()
+		case <-doneStreamingChan:
+			break L
+		}
 	}
 
-	w.Write(formatSSE("close", ""))
+	////Tail log steps
+	//go func() {
+	//	stepsSeenSoFar := make(map[int64]struct{})
+	//	for step := range stepsChan {
+	//		//log.Println("Status:::", step.Status)
+	//
+	//		//Wait if pending
+	//		if step.Status.Name == api.PendingBuildStatus {
+	//			continue
+	//		}
+	//
+	//		_, ok := stepsSeenSoFar[step.Id]
+	//		if !ok {
+	//			stepsSeenSoFar[step.Id] = struct{}{}
+	//
+	//			log.Debug("Starting tail log....", step.Id, stepsSeenSoFar)
+	//			wg.Add(1)
+	//
+	//			d, _ := json.Marshal(map[string]interface{}{
+	//				"StepId": step.Id,
+	//				"Status": "Started",
+	//			})
+	//			notifyChan <- d
+	//
+	//			go tailStep(step, engine, logsChan, &wg, notifyChan)
+	//		}
+	//	}
+	//}()
+
+	////Read all steps initially
+	//steps, err := stepService.GetSteps(buildNumber)
+	//if err != nil {
+	//	log.Error(err)
+	//	return
+	//}
+	//
+	//for _, s := range steps {
+	//	stepsChan <- s
+	//}
+
+	////Subscribe to streamer events
+	//ctx, cancel := context.WithCancel(context.Background())
+	//streamer := staticdata.BuildStreamer.Subscribe(ctx, buildNumber)
+	//if err != nil {
+	//	log.Println(err)
+	//	return
+	//}
+
+	////Read live events from DB + Polling results
+	//go func() {
+	//	for {
+	//		select {
+	//		case step := <-streamer.StepChannel:
+	//			stepsChan <- step
+	//
+	//		case build := <-streamer.BuildChannel:
+	//			log.Debug("Got build event:::", build)
+	//			if buildNumber == build.Id && build.Status.Name == api.FinishedBuildStatus {
+	//				//Allow steps to finish streaming
+	//				wg.Wait()
+	//				//TODO:??
+	//				ctx.Done()
+	//				cancel()
+	//				doneStreamingChan <- true
+	//				//close(logsChan)
+	//				return
+	//			}
+	//		}
+	//	}
+	//}()
+
+	//Waiting for logs
+	//	enc := json.NewEncoder(w)
+	//L:
+	//	for {
+	//		select {
+	//		case l := <-logsChan:
+	//			_ = formatSSEMessage(w, "", l, enc, f)
+	//		case notify := <-notifyChan:
+	//			log.Debug("Sending Notify", string(notify))
+	//			//TODO: Review
+	//			//dat, _ := json.Marshal(notify)
+	//			nn := formatSSE( "notify", string(notify))
+	//			w.Write(nn)
+	//			f.Flush()
+	//		case <-doneStreamingChan:
+	//			break L
+	//		}
+	//	}
+
+	//for l := range logsChan {
+	//	io.WriteString(w, "data: ")
+	//	enc.Encode(string(l))
+	//	io.WriteString(w, "\n\n")
+	//	f.Flush()
+	//}
+
+	/*w.Write(formatSSE("close", ""))
+	f.Flush()*/
+	log.Println("CLosing Stream")
+	d, _ := json.Marshal(map[string]interface{}{
+		"Status": "Done",
+	})
+	nn := formatSSE("close", string(d))
+	w.Write(nn)
 	f.Flush()
+	//_ = formatSSEMessage(w, "close", []byte(""), enc, f)
 }
+
+func formatSSEMessage(w http.ResponseWriter, event string, data interface{}, enc *json.Encoder, flusher http.Flusher) error {
+	if len(event) > 0 {
+		if _, err := io.WriteString(w, "event: "+event+"\n"); err != nil {
+			return err
+		}
+	}
+
+	if _, err := io.WriteString(w, "data: "); err != nil {
+		return err
+	}
+	//if err := enc.Encode(string(data)); err != nil {
+	//	return err
+	//}
+	//if err := enc.Encode(data); err != nil {
+	//	return err
+	//}
+	d, _ := json.Marshal(data)
+	w.Write(d)
+
+	if _, err := io.WriteString(w, "\n\n"); err != nil {
+		return err
+	}
+	flusher.Flush()
+	return nil
+}
+
 func formatSSE(event string, data string) []byte {
 	eventPayload := "event: " + event + "\n"
-	// dataLines := strings.Split(data, "\n")
-	// for _, line := range dataLines {
-	// 	eventPayload = eventPayload + "data: " + line + "\n"
-	// }
-	eventPayload = eventPayload + "data: " + data + "\n\n"
-	// eventPayload = eventPayload + "data: " + data + "\n"
-	return []byte(eventPayload + "\n\n")
+	dataLines := strings.Split(data, "\n")
+	for _, line := range dataLines {
+		eventPayload = eventPayload + "data: " + line + "\n"
+	}
+	//eventPayload = eventPayload + "data: " + data + "\n\n"
+	//eventPayload = eventPayload + "data: " + data + "\n"
+	return []byte(eventPayload + "\n")
 }
 
 func TestDeep(w http.ResponseWriter, r *http.Request) {

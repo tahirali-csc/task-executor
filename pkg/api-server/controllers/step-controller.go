@@ -7,7 +7,6 @@ import (
 	"github.com/task-executor/pkg/api"
 	"github.com/task-executor/pkg/api-server/services"
 	staticdata "github.com/task-executor/pkg/api-server/static-data"
-	runner "github.com/task-executor/pkg/runner"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -15,7 +14,7 @@ import (
 )
 
 var stepService = services.NewStepService()
-var stepRunner = runner.NewRunner()
+//var stepRunner = runner.NewRunner()
 
 func HandleStep(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {

@@ -2,8 +2,8 @@ package config
 
 import (
 	"io/ioutil"
-	"os"
-	"path"
+
+	log "github.com/sirupsen/logrus"
 
 	"gopkg.in/yaml.v2"
 )
@@ -27,16 +27,15 @@ func Get() *AppConfig {
 	return appConfig
 }
 
-func Load() (*AppConfig, error) {
+func Load(config string) (*AppConfig, error) {
 
 	if appConfig == nil {
-		//TODO: Will review!!
-		s, _ := os.Getwd()
-		data, err := ioutil.ReadFile(path.Join(s, "pkg/api-server", "config.yaml"))
+		data, err := ioutil.ReadFile(config)
 		if err != nil {
 			return nil, err
 		}
 
+		log.Debug("Getting application configuration from::", config)
 		appConfig = &AppConfig{}
 		err = yaml.Unmarshal(data, appConfig)
 		if err != nil {

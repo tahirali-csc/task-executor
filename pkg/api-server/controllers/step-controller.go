@@ -1,19 +1,23 @@
 package controllers
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/json"
+	"io/ioutil"
+	"net/http"
+	"strconv"
+	"time"
+
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 	"github.com/task-executor/pkg/api"
 	"github.com/task-executor/pkg/api-server/services"
 	staticdata "github.com/task-executor/pkg/api-server/static-data"
-	"io/ioutil"
-	"net/http"
-	"strconv"
-	"time"
 )
 
 var stepService = services.NewStepService()
+
 //var stepRunner = runner.NewRunner()
 
 func HandleStep(w http.ResponseWriter, r *http.Request) {
@@ -171,5 +175,40 @@ func findStep(r *http.Request, w http.ResponseWriter) {
 		log.Error(err)
 		http.Error(w, "Unable to convert", 500)
 		return
+	}
+}
+
+func HandleStepLogsUpload(res http.ResponseWriter, req *http.Request) {
+	// stepIdVar := mux.Vars(req)["id"]
+	// stepId, _ := strconv.ParseInt(stepIdVar, 10, 64)
+
+	if req.Method == http.MethodPost {
+		var buf bytes.Buffer
+		reader := bufio.NewReader(req.Body)
+		count := 0
+
+		for {
+			line, _, err := reader.ReadLine()
+			if err != nil {
+				stepService.UploadLogs(1, buf.Bytes())
+				return
+			}
+
+			buf.Write(line)
+			count++
+
+			if count > 0 && count%5 == 0 {
+				count = 0
+				stepService.UploadLogs(1, buf.Bytes())
+				buf.Reset()
+			}
+		}
+	} else if req.Method == http.MethodGet {
+		logs, err := stepService.GetLogs(1)
+		if err != nil {
+			log.Error(err)
+			return
+		}
+		res.Write(logs)
 	}
 }

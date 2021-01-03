@@ -2,15 +2,17 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
-	"github.com/gorilla/mux"
-	"github.com/task-executor/pkg/api-server/events"
-	"github.com/task-executor/pkg/api-server/services"
-	staticdata "github.com/task-executor/pkg/api-server/static-data"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/gorilla/mux"
+	"github.com/task-executor/pkg/api-server/events"
+	"github.com/task-executor/pkg/api-server/services"
+	staticdata "github.com/task-executor/pkg/api-server/static-data"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/task-executor/pkg/api-server/config"
@@ -65,11 +67,16 @@ func setHeaders(h http.Handler) http.Handler {
 	})
 }
 
-
 func main() {
+	//In GoLand/Intellij set work directory pointing to api-server
+	configFile := flag.String("config file", "config.yaml", "")
+	flag.Parse()
+
+	//Set default logging level
 	utils.InitLogs(log.DebugLevel)
 
-	config, err := config.Load()
+	//Load application config
+	config, err := config.Load(*configFile)
 	if err != nil {
 		log.Error(err)
 		return
@@ -102,8 +109,9 @@ func main() {
 	router.HandleFunc("/api/steps", controllers.HandleStep)
 	router.HandleFunc("/api/steps/{id}/status", controllers.HandleStepStatus)
 	router.HandleFunc("/api/steps/{id}/status/{status}", controllers.HandleStepStatus)
+	router.HandleFunc("/api/steps/{id}/logs", controllers.HandleStepLogsUpload)
 	router.HandleFunc("/api/logs", controllers.HandleLogStream)
-	router.HandleFunc("/api/testdeep", controllers.TestDeep)
+	// router.HandleFunc("/api/testdeep", controllers.TestDeep)
 
 	router.HandleFunc("/api/callback", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {

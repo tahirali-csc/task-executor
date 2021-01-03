@@ -137,4 +137,7 @@ create trigger step_notify_event
     for each row
 execute function notify_event();
 
-
+CREATE TABLE IF NOT EXISTS logs (
+ step_id   integer primary key,
+ log_data  bytea
+);

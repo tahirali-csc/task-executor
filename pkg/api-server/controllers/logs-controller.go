@@ -5,16 +5,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	log "github.com/sirupsen/logrus"
-	"github.com/task-executor/pkg/api"
-	staticdata "github.com/task-executor/pkg/api-server/static-data"
-	engine2 "github.com/task-executor/pkg/engine"
-	"github.com/task-executor/pkg/engine/kube"
 	"io"
 	"net/http"
 	"strconv"
 	"strings"
 	"sync"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/task-executor/pkg/api"
+	staticdata "github.com/task-executor/pkg/api-server/static-data"
+	engine2 "github.com/task-executor/pkg/engine"
+	"github.com/task-executor/pkg/engine/kube"
 )
 
 type logInfo struct {
@@ -234,10 +235,4 @@ func formatSSE(event string, data string) []byte {
 	//eventPayload = eventPayload + "data: " + data + "\n\n"
 	//eventPayload = eventPayload + "data: " + data + "\n"
 	return []byte(eventPayload + "\n")
-}
-
-func TestDeep(w http.ResponseWriter, r *http.Request) {
-	res, _ := buildService.DeepFetch([]int64{137, 138})
-	d, _ := json.Marshal(res)
-	w.Write(d)
 }

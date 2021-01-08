@@ -1,8 +1,7 @@
 package controllers
 
 import (
-	"bufio"
-	"bytes"
+	"context"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -179,36 +178,22 @@ func findStep(r *http.Request, w http.ResponseWriter) {
 }
 
 func HandleStepLogsUpload(res http.ResponseWriter, req *http.Request) {
-	// stepIdVar := mux.Vars(req)["id"]
-	// stepId, _ := strconv.ParseInt(stepIdVar, 10, 64)
+	stepIdVar := mux.Vars(req)["id"]
+	stepId, _ := strconv.ParseInt(stepIdVar, 10, 64)
 
 	if req.Method == http.MethodPost {
-		var buf bytes.Buffer
-		reader := bufio.NewReader(req.Body)
-		count := 0
-
-		for {
-			line, _, err := reader.ReadLine()
-			if err != nil {
-				stepService.UploadLogs(1, buf.Bytes())
-				return
-			}
-
-			buf.Write(line)
-			count++
-
-			if count > 0 && count%5 == 0 {
-				count = 0
-				stepService.UploadLogs(1, buf.Bytes())
-				buf.Reset()
-			}
-		}
+		staticdata.LogStore.Upload(context.Background(), stepId, req.Body)
 	} else if req.Method == http.MethodGet {
-		logs, err := stepService.GetLogs(1)
+		logs, err := staticdata.LogStore.Find(context.Background(), stepId)
 		if err != nil {
 			log.Error(err)
 			return
 		}
-		res.Write(logs)
+		dat, err := ioutil.ReadAll(logs)
+		if err != nil {
+			log.Error(err)
+			return
+		}
+		res.Write(dat)
 	}
 }

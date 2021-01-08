@@ -18,6 +18,7 @@ import (
 	"github.com/task-executor/pkg/api-server/config"
 	"github.com/task-executor/pkg/api-server/controllers"
 	"github.com/task-executor/pkg/api-server/dbstore"
+	buildlog "github.com/task-executor/pkg/logs"
 	"github.com/task-executor/pkg/scm/driver/github"
 	"github.com/task-executor/pkg/utils"
 
@@ -88,6 +89,7 @@ func main() {
 		return
 	}
 
+	staticdata.LogStore = buildlog.New(dbstore.DataSource)
 	staticdata.Init()
 
 	go func() {
@@ -111,7 +113,6 @@ func main() {
 	router.HandleFunc("/api/steps/{id}/status/{status}", controllers.HandleStepStatus)
 	router.HandleFunc("/api/steps/{id}/logs", controllers.HandleStepLogsUpload)
 	router.HandleFunc("/api/logs", controllers.HandleLogStream)
-	// router.HandleFunc("/api/testdeep", controllers.TestDeep)
 
 	router.HandleFunc("/api/callback", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {

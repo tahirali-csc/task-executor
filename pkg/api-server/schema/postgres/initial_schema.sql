@@ -138,6 +138,8 @@ create trigger step_notify_event
 execute function notify_event();
 
 CREATE TABLE IF NOT EXISTS logs (
- step_id   integer primary key,
- log_data  bytea
+ step_id   int8 NOT NULL,
+ log_data  bytea,
+ CONSTRAINT logs_pk PRIMARY KEY (step_id)
+--  CONSTRAINT logs_step_id FOREIGN KEY (step_id) REFERENCES step(id)
 );

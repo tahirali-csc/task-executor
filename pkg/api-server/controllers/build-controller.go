@@ -2,14 +2,15 @@ package controllers
 
 import (
 	"encoding/json"
+	"io/ioutil"
+	"net/http"
+	"strconv"
+
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 	"github.com/task-executor/pkg/api-server/services"
 	staticdata "github.com/task-executor/pkg/api-server/static-data"
 	"github.com/task-executor/pkg/api-server/trigger"
-	"io/ioutil"
-	"net/http"
-	"strconv"
 )
 
 var buildService = services.NewBuildService()
@@ -26,6 +27,12 @@ func HandleBuild(w http.ResponseWriter, r *http.Request) {
 func HandleBuildStatus(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		updateBuildStatus(r, w)
+	}
+}
+
+func HandleBuildSteps(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		findBuildSteps(w, r)
 	}
 }
 
@@ -107,6 +114,31 @@ func updateBuildStatus(r *http.Request, w http.ResponseWriter) {
 	if err != nil {
 		log.Println(err)
 		log.Println("Can not update status")
+		return
+	}
+}
+
+func findBuildSteps(w http.ResponseWriter, req *http.Request) {
+	buildIdVar := mux.Vars(req)["id"]
+	buildId, _ := strconv.ParseInt(buildIdVar, 10, 64)
+	steps, err := stepService.GetSteps(buildId)
+	if err != nil {
+		log.Error(err)
+		http.Error(w, "Unable to convert", 500)
+		return
+	}
+
+	data, err := json.Marshal(steps)
+	if err != nil {
+		log.Error(err)
+		http.Error(w, "Unable to convert", 500)
+		return
+	}
+
+	_, err = w.Write(data)
+	if err != nil {
+		log.Error(err)
+		http.Error(w, "Unable to convert", 500)
 		return
 	}
 }

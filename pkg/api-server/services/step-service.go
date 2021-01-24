@@ -103,24 +103,3 @@ func (ss StepService) GetStatus(stepId int64) (*api.BuildStatus, error) {
 
 	return status, err
 }
-
-// func (ss StepService) UploadLogs(stepId int64, log []byte) error {
-// 	insertStmt := `INSERT INTO logs(step_id, log_data) VALUES($1, $2)
-// ON conflict(step_ID) do update set log_data = logs.log_data || $2
-// 	`
-// 	_, err := dbstore.DataSource.Exec(insertStmt, stepId, log)
-// 	return err
-// }
-
-// func (ss StepService) GetLogs(stepId int64) ([]byte, error) {
-
-// 	var logs []byte
-// 	row := dbstore.DataSource.QueryRow(`SELECT log_data FROM logs WHERE step_id=$1`, stepId)
-// 	err := row.Scan(&logs)
-
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return logs, nil
-// }

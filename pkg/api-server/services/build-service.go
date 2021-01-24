@@ -2,10 +2,11 @@ package services
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/task-executor/pkg/api"
 	"github.com/task-executor/pkg/api-server/dbstore"
 	"github.com/task-executor/pkg/api-server/querybuilder"
-	"strings"
 )
 
 type BuildService struct{}
@@ -34,7 +35,7 @@ func (bs BuildService) Filter(values map[string][]string) ([]api.Build, error) {
 		return nil, err
 	}
 
-	rows, err := dbstore.DataSource.Query(fmt.Sprintf("SELECT * FROM build %s", filter))
+	rows, err := dbstore.DataSource.Query(fmt.Sprintf("SELECT b.*, bs.name FROM build b INNER JOIN build_status bs ON b.status=bs.id %s", filter))
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +43,7 @@ func (bs BuildService) Filter(values map[string][]string) ([]api.Build, error) {
 	var builds []api.Build
 	for rows.Next() {
 		res := api.Build{}
-		err := rows.Scan(&res.Id, &res.RepoBranch.Id, &res.Status.Id, &res.StartTs, &res.FinishedTs, &res.CreatedTs, &res.UpdatedTs)
+		err := rows.Scan(&res.Id, &res.RepoBranch.Id, &res.Status.Id, &res.StartTs, &res.FinishedTs, &res.CreatedTs, &res.UpdatedTs, &res.Status.Name)
 
 		if err != nil {
 			return nil, err

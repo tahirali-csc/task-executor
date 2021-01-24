@@ -8,6 +8,12 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+type ServerInfo struct {
+	Port     string
+	KeyFile  string `yaml:"keyFile"`
+	CertFile string `yaml:"certFile"`
+}
+
 type AppConfig struct {
 	Database struct {
 		Name     string
@@ -17,7 +23,8 @@ type AppConfig struct {
 	}
 
 	Server struct {
-		Port string
+		Http  ServerInfo
+		Https ServerInfo
 	}
 }
 

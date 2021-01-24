@@ -108,10 +108,14 @@ func main() {
 	scmClient, _ := github.New()
 	router.HandleFunc("/api/builds", controllers.HandleBuild)
 	router.HandleFunc("/api/builds/{id}/status/{status}", controllers.HandleBuildStatus)
+	router.HandleFunc("/api/builds/{id}/steps", controllers.HandleBuildSteps)
+
 	router.HandleFunc("/api/steps", controllers.HandleStep)
 	router.HandleFunc("/api/steps/{id}/status", controllers.HandleStepStatus)
 	router.HandleFunc("/api/steps/{id}/status/{status}", controllers.HandleStepStatus)
 	router.HandleFunc("/api/steps/{id}/logs", controllers.HandleStepLogsUpload)
+
+	//TODO: Change it to under step resource
 	router.HandleFunc("/api/logs", controllers.HandleLogStream)
 
 	router.HandleFunc("/api/callback", func(w http.ResponseWriter, r *http.Request) {
@@ -126,12 +130,26 @@ func main() {
 	})
 
 	server := http.Server{
-		Addr:    fmt.Sprintf(":%s", config.Server.Port),
+		Addr:    fmt.Sprintf(":%s", config.Server.Http.Port),
+		Handler: setHeaders(router),
+	}
+
+	tlsServer := http.Server{
+		Addr:    fmt.Sprintf(":%s", config.Server.Https.Port),
 		Handler: setHeaders(router),
 	}
 
 	registerShutdown(&server)
 
+	//Start Server with TLS
+	go func() {
+		var err = tlsServer.ListenAndServeTLS(config.Server.Https.CertFile, config.Server.Https.KeyFile)
+		if err != nil {
+			log.Error("Unable to start with TLS", err)
+		}
+	}()
+
+	//Start server with Http
 	//go func() {
 	err = server.ListenAndServe()
 	if err != nil {

@@ -5,4 +5,9 @@ database:
   host: localhost
 
 server:
-  port: 8080
+  http:
+    port: 8080
+  https:
+    port: 443
+    keyFile: "server.key"
+    certFile: "server.crt"

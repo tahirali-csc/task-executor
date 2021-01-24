@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"fmt"
 	"io"
 	"io/ioutil"
 
@@ -46,6 +47,8 @@ func (l *dbLogs) Upload(ctx context.Context, stepId int64, log io.Reader) error 
 		if err != nil {
 			break
 		}
+
+		fmt.Println("Read chunk##-------->")
 
 		insertStmt := `INSERT INTO logs(step_id, log_data) VALUES($1, $2)
 		ON conflict(step_id) DO UPDATE SET log_data = logs.log_data || $2`
